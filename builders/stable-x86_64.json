@@ -1,0 +1,9 @@
+{
+  "name": "stable-x86_64",
+  "system": "x86_64-linux",
+  "role": "stable-x86_64",
+  "channel": "stable",
+  "host_config": "hosts/stable-x86_64/default.nix",
+  "profile": "profiles/linux-stable/default.nix",
+  "image": "images/release-x86_64.nix"
+}
