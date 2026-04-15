@@ -1,0 +1,21 @@
+{
+  "channel": "candidate",
+  "artifact_set": "example:source-os-candidate-artifact-set",
+  "source_rev": "git:feature-linux-realization-v2",
+  "flake_lock": "pending",
+  "capabilities": {
+    "image-build": "0.1.0",
+    "promotion": "0.1.0",
+    "rollback": "0.1.0"
+  },
+  "eval_bundle": "candidate-eval-pending",
+  "data_snapshots": {
+    "policies": "pending",
+    "benchmarks": "pending"
+  },
+  "promoted_at": "2026-04-15T19:40:00Z",
+  "rollback_to": "dev:example:source-os-dev-artifact-set",
+  "approved_by": [
+    "operator"
+  ]
+}
