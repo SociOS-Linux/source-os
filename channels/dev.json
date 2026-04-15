@@ -1,0 +1,21 @@
+{
+  "channel": "dev",
+  "artifact_set": "example:source-os-dev-artifact-set",
+  "source_rev": "git:main",
+  "flake_lock": "pending",
+  "capabilities": {
+    "image-build": "0.1.0",
+    "promotion": "0.1.0",
+    "rollback": "0.1.0"
+  },
+  "eval_bundle": "pending",
+  "data_snapshots": {
+    "policies": "pending",
+    "benchmarks": "pending"
+  },
+  "promoted_at": "2026-04-15T18:40:00Z",
+  "rollback_to": "none",
+  "approved_by": [
+    "bootstrap"
+  ]
+}
