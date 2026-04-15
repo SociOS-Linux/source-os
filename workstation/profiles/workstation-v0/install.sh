@@ -37,8 +37,7 @@ install_user_brew_packages() {
 
   info "Installing USER packages via brew (manifest-driven)."
 
-  # NOTE: minimal parser: extract lines under 'brew:' at indent 10+ and '- ' entries.
-  # This assumes the manifest format in this repo and is intentionally simple.
+  # NOTE: minimal parser: extract lines under 'brew:' and '- ' entries.
   awk '
     $0 ~ /^\s*brew:\s*$/ {in=1; next}
     in && $0 ~ /^\s*- / {gsub(/^\s*- /, ""); print; next}
@@ -56,7 +55,6 @@ install_system_packages() {
 
   if have rpm-ostree; then
     info "Detected rpm-ostree. Installing SYSTEM packages (may require reboot)."
-    # minimal set (kept in manifest): git, ssh, podman, toolbox, wl-clipboard, jq
     sudo rpm-ostree install git openssh-clients podman toolbox wl-clipboard jq || true
     info "If rpm-ostree applied new packages, reboot before proceeding."
     return
@@ -73,6 +71,17 @@ install_system_packages() {
   exit 2
 }
 
+install_shell_spine() {
+  local spine="$PROFILE_DIR/install-shell-spine.sh"
+  if [[ -x "$spine" ]]; then
+    info "Installing shell spine (fzf/atuin/zoxide/direnv + clipboard helpers)"
+    "$spine"
+  else
+    err "shell spine installer missing: $spine"
+    return 1
+  fi
+}
+
 main() {
   if [[ ! -f "$MANIFEST" ]]; then
     err "manifest not found: $MANIFEST"
@@ -81,6 +90,7 @@ main() {
 
   install_system_packages
   install_user_brew_packages
+  install_shell_spine
 
   info "Workstation profile install complete (v0)."
   info "Next: run doctor: $PROFILE_DIR/doctor.sh"
