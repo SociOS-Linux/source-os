@@ -1,0 +1,29 @@
+# /etc/systemd/network/50-mesh0.network
+# Matching .network file for mesh0.
+
+[Match]
+Name=mesh0
+
+[Network]
+Address=10.77.0.1/32
+Address=fd77:77::1/128
+LinkLocalAddressing=no
+IPv6AcceptRA=no
+LLDP=no
+ConfigureWithoutCarrier=yes
+IgnoreCarrierLoss=yes
+
+[Route]
+Destination=10.90.0.0/16
+Table=110
+Metric=50
+
+[RoutingPolicyRule]
+FirewallMark=0x110
+Table=110
+Priority=10010
+
+[RoutingPolicyRule]
+FirewallMark=0x120
+Table=120
+Priority=10020

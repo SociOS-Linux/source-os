@@ -1,0 +1,33 @@
+[connection]
+id=wg-mesh
+type=wireguard
+interface-name=wg-mesh
+autoconnect=false
+
+[ipv4]
+method=manual
+address1=10.77.0.10/32
+route-table=120
+ignore-auto-dns=true
+dns-priority=-32768
+never-default=false
+routing-rule1=priority 10020 fwmark 0x120 table 120
+
+[ipv6]
+method=manual
+address1=fd77:77::10/128
+route-table=120
+ignore-auto-dns=true
+dns-priority=-32768
+never-default=false
+routing-rule1=priority 10020 fwmark 0x120 table 120
+
+[wireguard]
+private-key=__PRIVATE_KEY_BASE64__
+fwmark=0
+ip4-auto-default-route=true
+ip6-auto-default-route=true
+peer-routes=true
+peers=__EXIT_PUBLIC_KEY_BASE64__ endpoint=203.0.113.20:51820 allowed-ips=0.0.0.0/0;::/0 persistent-keepalive=25
+
+[proxy]

@@ -1,0 +1,40 @@
+[Unit]
+Description=Mesh control-plane daemon
+Documentation=man:meshd(8)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=meshd
+Group=meshd
+StateDirectory=meshd
+RuntimeDirectory=meshd
+ConfigurationDirectory=meshd
+ExecStart=/usr/libexec/meshd --config /etc/meshd/meshd.toml --listen unix:/run/meshd/meshd.sock
+Restart=on-failure
+RestartSec=2s
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectClock=yes
+ProtectHostname=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
