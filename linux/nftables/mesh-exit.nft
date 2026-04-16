@@ -1,0 +1,20 @@
+#!/usr/sbin/nft -f
+# Stateful NAT and forwarding policy for an exit node.
+
+flush table inet mesh_exit
+table inet mesh_exit {
+  chain forward {
+    type filter hook forward priority 0; policy drop;
+    ct state established,related accept
+    iifname "mesh0" oifname "eth0" ip saddr 10.77.0.0/16 accept
+    iifname "mesh0" oifname "eth0" ip6 saddr fd77:77::/48 accept
+    iifname "eth0" oifname "mesh0" ct state established,related accept
+  }
+
+  chain postrouting {
+    type nat hook postrouting priority srcnat; policy accept;
+    oifname "eth0" ip saddr 10.77.0.0/16 masquerade
+    # Add NAT66 only if policy truly requires it.
+    # oifname "eth0" ip6 saddr fd77:77::/48 masquerade
+  }
+}
