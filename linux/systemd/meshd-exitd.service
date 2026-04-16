@@ -1,0 +1,34 @@
+[Unit]
+Description=Mesh exit helper
+After=network-online.target meshd-linkd.service
+Wants=network-online.target
+Requires=meshd-linkd.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/libexec/meshd-exitd --config /etc/meshd/exits.toml --nft /etc/meshd/nftables/mesh-exit.nft
+Restart=on-failure
+RestartSec=2s
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target
