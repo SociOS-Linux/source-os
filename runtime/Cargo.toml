@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = [
+  "triune-ctx",
+  "cap-checker",
+  "triune-anchor",
+  "watchdog-validator",
+  "quorumd",
+]
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
