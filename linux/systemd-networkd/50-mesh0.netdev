@@ -1,0 +1,31 @@
+# /etc/systemd/network/50-mesh0.netdev
+# Conservative example template for a mesh underlay interface.
+# Adapt addresses, keys, ports, and routing policy to your estate.
+
+[NetDev]
+Name=mesh0
+Kind=wireguard
+Description=Mesh underlay interface
+
+[WireGuard]
+PrivateKey=@mesh0
+ListenPort=51820
+FirewallMark=0x110
+RouteTable=110
+RouteMetric=50
+
+[WireGuardPeer]
+PublicKey=__PEER1_PUBLIC_KEY_BASE64__
+PresharedKey=@mesh0-peer1-psk
+AllowedIPs=10.77.0.2/32, fd77:77::2/128
+Endpoint=198.51.100.10:51820
+PersistentKeepalive=25
+
+# Optional full-tunnel peer / exit role on the client side:
+# [WireGuardPeer]
+# PublicKey=__EXIT_PUBLIC_KEY_BASE64__
+# AllowedIPs=0.0.0.0/0, ::/0
+# Endpoint=203.0.113.20:51820
+# PersistentKeepalive=25
+# RouteTable=120
+# RouteMetric=10
