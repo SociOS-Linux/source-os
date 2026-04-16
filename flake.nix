@@ -61,7 +61,7 @@
 
           stable-x86_64-smoke =
             if system == "x86_64-linux"
-            then import ./tests/stable-x86_64-smoke.nix { inherit pkgs; }
+            then import ./tests/stable-x86_64-contract.nix { inherit pkgs; }
             else pkgs.runCommand "stable-x86_64-smoke-skip" {} ''
               mkdir -p $out
             '';
