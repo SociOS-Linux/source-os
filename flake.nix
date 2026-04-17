@@ -13,6 +13,15 @@
     in {
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixpkgs-fmt);
 
+      packages = forAllSystems (system:
+        let pkgs = nixpkgs.legacyPackages.${system};
+        in rec {
+          meshd = pkgs.callPackage ./packages/mesh/meshd.nix { };
+          meshd-linkd = pkgs.callPackage ./packages/mesh/meshd-linkd.nix { };
+          meshd-exitd = pkgs.callPackage ./packages/mesh/meshd-exitd.nix { };
+          default = meshd;
+        });
+
       devShells = forAllSystems (system:
         let pkgs = nixpkgs.legacyPackages.${system};
         in {
@@ -28,16 +37,19 @@
       nixosConfigurations = {
         builder-aarch64 = lib.nixosSystem {
           system = "aarch64-linux";
+          specialArgs = { inherit self; };
           modules = [ ./hosts/builder-aarch64/default.nix ];
         };
 
         canary-x86_64 = lib.nixosSystem {
           system = "x86_64-linux";
+          specialArgs = { inherit self; };
           modules = [ ./hosts/canary-x86_64/default.nix ];
         };
 
         stable-x86_64 = lib.nixosSystem {
           system = "x86_64-linux";
+          specialArgs = { inherit self; };
           modules = [ ./hosts/stable-x86_64/default.nix ];
         };
       };
@@ -68,6 +80,12 @@
 
           mesh-module-contract = import ./tests/mesh-module-contract.nix { inherit pkgs; };
           mesh-runtime-contract = import ./tests/mesh-runtime-contract.nix { inherit pkgs; };
+          mesh-package-contract = import ./tests/mesh-package-contract.nix { inherit pkgs; };
+          mesh-host-runtime-contract = import ./tests/mesh-host-runtime-contract.nix { inherit pkgs; };
+
+          meshd-package = self.packages.${system}.meshd;
+          meshd-linkd-package = self.packages.${system}.meshd-linkd;
+          meshd-exitd-package = self.packages.${system}.meshd-exitd;
         });
 
       sourceos = {
