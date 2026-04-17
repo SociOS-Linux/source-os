@@ -20,7 +20,7 @@
             packages = with pkgs; [ git jq nixpkgs-fmt ];
             shellHook = ''
               echo "SourceOS Linux development shell"
-              echo "See docs/repository-layout.md and docs/agentplane-integration.md"
+              echo "See docs/repository-layout.md, docs/agentplane-integration.md, and docs/mesh/README.md"
             '';
           };
         });
@@ -65,6 +65,8 @@
             else pkgs.runCommand "stable-x86_64-smoke-skip" {} ''
               mkdir -p $out
             '';
+
+          mesh-module-contract = import ./tests/mesh-module-contract.nix { inherit pkgs; };
         });
 
       sourceos = {
