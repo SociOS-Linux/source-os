@@ -6,6 +6,7 @@ MANIFEST="$PROFILE_DIR/manifest.yaml"
 
 err(){ printf "ERROR: %s\n" "$*" >&2; }
 info(){ printf "INFO: %s\n" "$*" >&2; }
+warn(){ printf "WARN: %s\n" "$*" >&2; }
 
 have(){ command -v "$1" >/dev/null 2>&1; }
 
@@ -56,11 +57,22 @@ install_shell_spine(){
   info "Enable by sourcing it from your shell rc (zshrc/bashrc)."
 }
 
+apply_gnome_baseline(){
+  local script="$PROFILE_DIR/gnome/apply.sh"
+  if [[ -x "$script" ]]; then
+    info "Applying GNOME baseline (best-effort)"
+    "$script" || warn "GNOME baseline apply failed (non-fatal)"
+  else
+    warn "GNOME baseline script not found: $script"
+  fi
+}
+
 main(){
   [[ -f "$MANIFEST" ]] || { err "manifest missing: $MANIFEST"; exit 2; }
   install_system
   install_user
   install_shell_spine
+  apply_gnome_baseline
   info "installed workstation-v0 (linux-dev)"
   info "next: ./doctor.sh"
 }
