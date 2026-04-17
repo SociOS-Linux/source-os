@@ -1,0 +1,79 @@
+apiVersion: sourceos.workstation/v0
+kind: WorkstationProfile
+metadata:
+  name: workstation-v0
+  channel: linux-dev
+spec:
+  layers:
+    system:
+      rpm_ostree:
+        - git
+        - openssh-clients
+        - podman
+        - toolbox
+        - wl-clipboard
+        - jq
+        - xclip
+      dnf:
+        - git
+        - openssh-clients
+        - podman
+        - toolbox
+        - wl-clipboard
+        - jq
+        - xclip
+    user:
+      brew:
+        - fzf
+        - atuin
+        - bat
+        - zoxide
+        - yazi
+        - eza
+        - gum
+        - direnv
+        - tldr
+        - fd
+        - ripgrep
+        - sd
+        - lazygit
+        - gh
+        - diff-so-fancy
+        - tig
+        - svu
+        - tmux
+        - sesh
+        - mprocs
+        - procs
+        - lazydocker
+        - k9s
+        - btop
+        - jnv
+        - gojq
+        - fx
+        - jless
+        - jqp
+        - dua-cli
+        - dust
+        - kondo
+        - glow
+        - hyperfine
+        - rclone
+        - minio-mc
+        - rsync
+        - entr
+        - curlie
+  desktop:
+    gnome:
+      inputs:
+        kinto:
+          enabled: true
+          note: "X11-centric; validate Wayland or use keyd/xremap"
+        fusuma:
+          enabled: true
+          note: "libinput gestures; validate hardware"
+  launcher:
+    albert:
+      plugin:
+        id: sourceos
+        trigger: "sourceos "
