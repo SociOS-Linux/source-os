@@ -67,6 +67,7 @@
             '';
 
           mesh-module-contract = import ./tests/mesh-module-contract.nix { inherit pkgs; };
+          mesh-runtime-contract = import ./tests/mesh-runtime-contract.nix { inherit pkgs; };
         });
 
       sourceos = {
