@@ -82,6 +82,10 @@
           mesh-runtime-contract = import ./tests/mesh-runtime-contract.nix { inherit pkgs; };
           mesh-package-contract = import ./tests/mesh-package-contract.nix { inherit pkgs; };
           mesh-host-runtime-contract = import ./tests/mesh-host-runtime-contract.nix { inherit pkgs; };
+
+          meshd-package = self.packages.${system}.meshd;
+          meshd-linkd-package = self.packages.${system}.meshd-linkd;
+          meshd-exitd-package = self.packages.${system}.meshd-exitd;
         });
 
       sourceos = {
