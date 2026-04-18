@@ -95,6 +95,19 @@ main(){
   if gnome_detect; then
     if have gsettings; then
       info "gnome: detected; gsettings present"
+
+      # best-effort visibility of albert hotkey binding
+      local base="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"
+      local custom0="${base}custom0/"
+      local bindings
+      bindings=$(gsettings get org.gnome.settings-daemon.plugins.media-keys custom-keybindings || true)
+      info "gnome: custom-keybindings = ${bindings}"
+      local hk
+      hk=$(gsettings get org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${custom0} binding 2>/dev/null || true)
+      if [[ -n "$hk" ]]; then
+        info "gnome: albert binding = ${hk}"
+      fi
+
     else
       warn "gnome: detected but gsettings missing"
     fi
