@@ -52,6 +52,12 @@
           specialArgs = { inherit self; };
           modules = [ ./hosts/stable-x86_64/default.nix ];
         };
+
+        exit-x86_64 = lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = { inherit self; };
+          modules = [ ./hosts/exit-x86_64/default.nix ];
+        };
       };
 
       checks = forAllSystems (system:
@@ -75,6 +81,13 @@
             if system == "x86_64-linux"
             then import ./tests/stable-x86_64-contract.nix { inherit pkgs; }
             else pkgs.runCommand "stable-x86_64-smoke-skip" {} ''
+              mkdir -p $out
+            '';
+
+          exit-x86_64-smoke =
+            if system == "x86_64-linux"
+            then import ./tests/exit-x86_64-contract.nix { inherit pkgs; }
+            else pkgs.runCommand "exit-x86_64-smoke-skip" {} ''
               mkdir -p $out
             '';
 
