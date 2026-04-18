@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# SourceOS workstation helper (linux-dev/workstation-v0)
+# This is a small, dependency-light command surface intended to be callable from Albert.
+
+PROFILE_DIR_DEFAULT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROFILE_DIR="${SOURCEOS_PROFILE_DIR:-$PROFILE_DIR_DEFAULT}"
+
+err(){ printf "ERROR: %s\n" "$*" >&2; }
+info(){ printf "INFO: %s\n" "$*" >&2; }
+
+usage(){
+  cat <<EOF
+sourceos (workstation helper)
+
+Usage:
+  sourceos doctor
+  sourceos profile apply
+  sourceos profile path
+
+Env:
+  SOURCEOS_PROFILE_DIR   Override profile directory (default: $PROFILE_DIR_DEFAULT)
+EOF
+}
+
+run_doctor(){
+  local doc="$PROFILE_DIR/doctor.sh"
+  [[ -x "$doc" ]] || { err "doctor not found: $doc"; exit 2; }
+  exec "$doc"
+}
+
+run_apply(){
+  local inst="$PROFILE_DIR/install.sh"
+  [[ -x "$inst" ]] || { err "installer not found: $inst"; exit 2; }
+  exec "$inst"
+}
+
+profile_path(){
+  echo "$PROFILE_DIR"
+}
+
+main(){
+  local cmd=${1:-}
+  case "$cmd" in
+    -h|--help|help|"")
+      usage
+      ;;
+    doctor)
+      run_doctor
+      ;;
+    profile)
+      shift
+      local sub=${1:-}
+      case "$sub" in
+        apply)
+          run_apply
+          ;;
+        path)
+          profile_path
+          ;;
+        *)
+          err "unknown profile subcommand: $sub"
+          usage
+          exit 2
+          ;;
+      esac
+      ;;
+    *)
+      err "unknown command: $cmd"
+      usage
+      exit 2
+      ;;
+  esac
+}
+
+main "$@"
