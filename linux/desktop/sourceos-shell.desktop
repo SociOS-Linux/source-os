@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SourceOS Shell
+Comment=SourceOS shell runtime scaffold
+Exec=/opt/sourceos-shell/bin/sourceos-shell
+Terminal=false
+Categories=Development;Utility;
+StartupNotify=true
