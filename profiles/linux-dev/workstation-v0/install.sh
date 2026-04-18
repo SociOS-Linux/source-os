@@ -77,6 +77,16 @@ apply_gnome_extensions(){
   fi
 }
 
+apply_albert_install(){
+  local script="$PROFILE_DIR/gnome/albert-install.sh"
+  if [[ -x "$script" ]]; then
+    info "Installing Albert (best-effort)"
+    "$script" || warn "Albert install failed (non-fatal)"
+  else
+    warn "Albert install script not found: $script"
+  fi
+}
+
 apply_albert_hotkey(){
   local script="$PROFILE_DIR/gnome/albert-hotkey.sh"
   if [[ -x "$script" ]]; then
@@ -104,6 +114,7 @@ main(){
   install_shell_spine
   apply_gnome_baseline
   apply_gnome_extensions
+  apply_albert_install
   apply_albert_hotkey
   apply_albert_autostart
   info "installed workstation-v0 (linux-dev)"
