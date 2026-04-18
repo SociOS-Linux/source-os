@@ -4,6 +4,7 @@ set -euo pipefail
 fail=0
 
 info(){ printf "INFO: %s\n" "$*" >&2; }
+warn(){ printf "WARN: %s\n" "$*" >&2; }
 err(){ printf "ERROR: %s\n" "$*" >&2; fail=1; }
 
 have(){ command -v "$1" >/dev/null 2>&1; }
@@ -15,6 +16,16 @@ check(){
   else
     err "missing: $bin"
   fi
+}
+
+gnome_detect(){
+  if [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
+    return 0
+  fi
+  if [[ "${DESKTOP_SESSION:-}" == *gnome* ]]; then
+    return 0
+  fi
+  return 1
 }
 
 main(){
@@ -69,6 +80,17 @@ main(){
   check rclone
   check mc
   check rsync
+
+  # GNOME baseline signals (non-fatal)
+  if gnome_detect; then
+    if have gsettings; then
+      info "gnome: detected; gsettings present"
+    else
+      warn "gnome: detected but gsettings missing"
+    fi
+  else
+    info "gnome: not detected (ok)"
+  fi
 
   if [[ $fail -ne 0 ]]; then
     info "doctor: FAIL"
