@@ -87,6 +87,16 @@ apply_albert_hotkey(){
   fi
 }
 
+apply_albert_autostart(){
+  local script="$PROFILE_DIR/gnome/albert-autostart.sh"
+  if [[ -x "$script" ]]; then
+    info "Installing Albert autostart entry (best-effort)"
+    "$script" || warn "Albert autostart setup failed (non-fatal)"
+  else
+    warn "Albert autostart script not found: $script"
+  fi
+}
+
 main(){
   [[ -f "$MANIFEST" ]] || { err "manifest missing: $MANIFEST"; exit 2; }
   install_system
@@ -95,6 +105,7 @@ main(){
   apply_gnome_baseline
   apply_gnome_extensions
   apply_albert_hotkey
+  apply_albert_autostart
   info "installed workstation-v0 (linux-dev)"
   info "next: ./doctor.sh"
 }
