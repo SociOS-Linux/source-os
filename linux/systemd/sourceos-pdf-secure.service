@@ -1,0 +1,13 @@
+[Unit]
+Description=SourceOS PDF secure service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/sourceos-shell/bin/sourceos-pdf-secure
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target
