@@ -67,12 +67,23 @@ apply_gnome_baseline(){
   fi
 }
 
+apply_gnome_extensions(){
+  local script="$PROFILE_DIR/gnome/extensions-install.sh"
+  if [[ -x "$script" ]]; then
+    info "Applying GNOME extension pinset (best-effort)"
+    "$script" || warn "GNOME extensions apply failed (non-fatal)"
+  else
+    warn "GNOME extensions installer not found: $script"
+  fi
+}
+
 main(){
   [[ -f "$MANIFEST" ]] || { err "manifest missing: $MANIFEST"; exit 2; }
   install_system
   install_user
   install_shell_spine
   apply_gnome_baseline
+  apply_gnome_extensions
   info "installed workstation-v0 (linux-dev)"
   info "next: ./doctor.sh"
 }

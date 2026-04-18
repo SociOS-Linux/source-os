@@ -19,13 +19,23 @@ check(){
 }
 
 gnome_detect(){
-  if [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
-    return 0
-  fi
-  if [[ "${DESKTOP_SESSION:-}" == *gnome* ]]; then
-    return 0
-  fi
+  [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]] && return 0
+  [[ "${DESKTOP_SESSION:-}" == *gnome* ]] && return 0
   return 1
+}
+
+check_gnome_extension(){
+  local uuid=$1
+  if ! have gnome-extensions; then
+    warn "gnome-extensions missing; cannot validate extension: $uuid"
+    return 0
+  fi
+
+  if gnome-extensions list | grep -qx "$uuid"; then
+    info "gnome-ext present: $uuid"
+  else
+    warn "gnome-ext missing: $uuid"
+  fi
 }
 
 main(){
@@ -88,6 +98,11 @@ main(){
     else
       warn "gnome: detected but gsettings missing"
     fi
+
+    # Extension pinset (non-fatal)
+    check_gnome_extension 'dash-to-dock@micxgx.gmail.com'
+    check_gnome_extension 'appindicatorsupport@rgcjonas.gmail.com'
+
   else
     info "gnome: not detected (ok)"
   fi
