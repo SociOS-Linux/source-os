@@ -77,6 +77,16 @@ apply_gnome_extensions(){
   fi
 }
 
+apply_albert_hotkey(){
+  local script="$PROFILE_DIR/gnome/albert-hotkey.sh"
+  if [[ -x "$script" ]]; then
+    info "Setting Albert hotkey (best-effort)"
+    "$script" || warn "Albert hotkey setup failed (non-fatal)"
+  else
+    warn "Albert hotkey script not found: $script"
+  fi
+}
+
 main(){
   [[ -f "$MANIFEST" ]] || { err "manifest missing: $MANIFEST"; exit 2; }
   install_system
@@ -84,6 +94,7 @@ main(){
   install_shell_spine
   apply_gnome_baseline
   apply_gnome_extensions
+  apply_albert_hotkey
   info "installed workstation-v0 (linux-dev)"
   info "next: ./doctor.sh"
 }
