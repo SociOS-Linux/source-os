@@ -4,10 +4,12 @@ set -euo pipefail
 # Install Albert on Fedora-based systems.
 # Strategy:
 #   1) Try native repos (dnf/rpm-ostree).
-#   2) If not available, add the OBS repo from home:manuelschneid3r and retry.
+#   2) If not available, *optionally* add the OBS repo from home:manuelschneid3r and retry.
 #
-# This keeps the workstation “don’t think about it” while still remaining explicit
-# about trust boundaries: adding a third-party RPM repo is a trust expansion.
+# Trust note:
+# - Adding a third-party RPM repo expands the host trust boundary.
+# - Therefore the OBS fallback is gated behind:
+#     SOURCEOS_ALLOW_THIRDPARTY_REPOS=1
 
 info(){ printf "INFO: %s\n" "$*" >&2; }
 warn(){ printf "WARN: %s\n" "$*" >&2; }
@@ -38,19 +40,22 @@ os_version_id(){
   fi
 }
 
+allow_thirdparty_repos(){
+  case "${SOURCEOS_ALLOW_THIRDPARTY_REPOS:-0}" in
+    1|true|TRUE|yes|YES) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 fedora_obs_repofile_url(){
-  # OBS provides a yum repo file per Fedora version.
-  # Example URLs from software.opensuse.org for Fedora_41+ and Rawhide.
   local v
   v="$(os_version_id)"
 
-  # Rawhide is sometimes expressed as 'rawhide' or empty.
   if [[ "$v" == "rawhide" || "$v" == "Rawhide" || -z "$v" ]]; then
     echo "https://download.opensuse.org/repositories/home:manuelschneid3r/Fedora_Rawhide/home:manuelschneid3r.repo"
     return
   fi
 
-  # Numeric Fedora releases
   echo "https://download.opensuse.org/repositories/home:manuelschneid3r/Fedora_${v}/home:manuelschneid3r.repo"
 }
 
@@ -94,7 +99,6 @@ try_install_native(){
 try_install_with_obs(){
   install_obs_repo || return 1
 
-  # Retry install now that repo is present.
   if have rpm-ostree; then
     info "Retrying rpm-ostree install albert (with OBS repo)"
     sudo rpm-ostree install albert || true
@@ -108,6 +112,16 @@ try_install_with_obs(){
   fi
 
   return 1
+}
+
+print_obs_instructions(){
+  local url
+  url="$(fedora_obs_repofile_url)"
+  warn "OBS fallback is disabled by default (trust boundary expansion)."
+  warn "To allow enabling the OBS repo automatically, set:"
+  warn "  export SOURCEOS_ALLOW_THIRDPARTY_REPOS=1"
+  warn "Then re-run this installer."
+  warn "If you prefer manual install, repo file URL is: $url"
 }
 
 main(){
@@ -136,7 +150,14 @@ main(){
     exit 0
   fi
 
-  warn "Albert not found in native repos; attempting OBS repo fallback"
+  warn "Albert not found in native repos."
+
+  if ! allow_thirdparty_repos; then
+    print_obs_instructions
+    exit 2
+  fi
+
+  warn "Third-party repos allowed; attempting OBS repo fallback"
   try_install_with_obs
 
   if have albert; then
@@ -144,6 +165,7 @@ main(){
   else
     warn "albert not found after install attempts."
     warn "You may need to install manually from software.opensuse.org for your Fedora version."
+    exit 2
   fi
 }
 
