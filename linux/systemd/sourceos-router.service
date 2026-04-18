@@ -1,0 +1,13 @@
+[Unit]
+Description=SourceOS Router bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/sourceos-shell/bin/sourceos-router
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target
