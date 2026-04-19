@@ -59,8 +59,7 @@ EOF
   info "pinned profile dir: $PROFILE_FILE"
 
   if [[ ":$PATH:" != *":$DEST_DIR:"* ]]; then
-    warn "~/.local/bin is not on PATH. Add one line to your shell rc:"
-    warn "  export PATH=\"$DEST_DIR:\$PATH\""
+    warn "$DEST_DIR is not on PATH. Add it to your shell rc before using sourceos."
   fi
 }
 
