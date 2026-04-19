@@ -56,3 +56,39 @@ jobs:
           while IFS= read -r f; do
             bash -n "$f"
           done <<<"$files"
+
+      - name: Smoke: sourceos status JSON parses
+        run: |
+          set -euo pipefail
+          f='profiles/linux-dev/workstation-v0/bin/sourceos'
+          bash -n "$f"
+
+          # `sourceos status --json` may return exit 0 (all deps present) or 2 (missing deps).
+          # We only require the JSON output to parse and contain expected keys.
+          set +e
+          out=$(SOURCEOS_PROFILE_DIR=profiles/linux-dev/workstation-v0 bash "$f" status --json)
+          rc=$?
+          set -e
+
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 2 ]; then
+            echo "Unexpected exit code: $rc" >&2
+            exit 1
+          fi
+
+          python3 - <<'PY'
+import json, os, sys
+s = os.environ.get('OUT', '')
+try:
+    j = json.loads(s)
+except Exception as e:
+    print('JSON parse failed:', e, file=sys.stderr)
+    print('raw:', s, file=sys.stderr)
+    sys.exit(1)
+for k in ['profile','ok','gnome','required_missing','optional_missing','warnings']:
+    if k not in j:
+        print('missing key:', k, file=sys.stderr)
+        sys.exit(1)
+print('ok')
+PY
+        env:
+          OUT: "${out}"
