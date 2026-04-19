@@ -59,6 +59,9 @@ main(){
   # USER expectations
   check brew
 
+  # SourceOS helper (needed for Albert SourceOS plugin actions)
+  check sourceos
+
   # Core CLI must-haves
   check fzf
   check atuin
@@ -91,12 +94,13 @@ main(){
   check mc
   check rsync
 
-  # GNOME baseline signals (non-fatal)
+  # GNOME expectations
   if gnome_detect; then
+    check albert
+
     if have gsettings; then
       info "gnome: detected; gsettings present"
 
-      # best-effort visibility of albert hotkey binding
       local base="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"
       local custom0="${base}custom0/"
       local bindings
@@ -112,7 +116,6 @@ main(){
       warn "gnome: detected but gsettings missing"
     fi
 
-    # Extension pinset (non-fatal)
     check_gnome_extension 'dash-to-dock@micxgx.gmail.com'
     check_gnome_extension 'appindicatorsupport@rgcjonas.gmail.com'
 

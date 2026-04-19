@@ -57,6 +57,16 @@ install_shell_spine(){
   info "Enable by sourcing it from your shell rc (zshrc/bashrc)."
 }
 
+install_sourceos_cli(){
+  local script="$PROFILE_DIR/bin/install-sourceos-cli.sh"
+  if [[ -x "$script" ]]; then
+    info "Installing SourceOS helper CLI to ~/.local/bin"
+    "$script" || warn "sourceos CLI install failed (non-fatal)"
+  else
+    warn "sourceos CLI installer not found: $script"
+  fi
+}
+
 apply_gnome_baseline(){
   local script="$PROFILE_DIR/gnome/apply.sh"
   if [[ -x "$script" ]]; then
@@ -77,6 +87,16 @@ apply_gnome_extensions(){
   fi
 }
 
+apply_albert_install(){
+  local script="$PROFILE_DIR/gnome/albert-install.sh"
+  if [[ -x "$script" ]]; then
+    info "Installing Albert (best-effort)"
+    "$script" || warn "Albert install failed (non-fatal)"
+  else
+    warn "Albert install script not found: $script"
+  fi
+}
+
 apply_albert_hotkey(){
   local script="$PROFILE_DIR/gnome/albert-hotkey.sh"
   if [[ -x "$script" ]]; then
@@ -92,8 +112,10 @@ main(){
   install_system
   install_user
   install_shell_spine
+  install_sourceos_cli
   apply_gnome_baseline
   apply_gnome_extensions
+  apply_albert_install
   apply_albert_hotkey
   info "installed workstation-v0 (linux-dev)"
   info "next: ./doctor.sh"
