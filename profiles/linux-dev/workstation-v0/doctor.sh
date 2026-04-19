@@ -101,6 +101,7 @@ main(){
     if have gsettings; then
       info "gnome: detected; gsettings present"
 
+      # best-effort visibility of albert hotkey binding
       local base="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"
       local custom0="${base}custom0/"
       local bindings
