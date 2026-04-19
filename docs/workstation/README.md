@@ -14,6 +14,19 @@ Placement rule:
 
 - [RUNBOOK.md](RUNBOOK.md) — operational “how we actually use it” steps
 
+## CI
+
+Workstation scripts are guarded by the `workstation-scripts` GitHub Actions workflow:
+- `shellcheck`
+- `bash -n`
+
+It triggers on PRs and main pushes touching:
+- `profiles/linux-dev/workstation-v0/**`
+- `docs/workstation/**`
+
+Workflow file:
+- `.github/workflows/workstation-scripts.yml`
+
 ## Workstation v0 goals
 
 - CLI-first developer experience with keyboard-first navigation.
