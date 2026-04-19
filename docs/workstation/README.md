@@ -17,8 +17,9 @@ Placement rule:
 ## CI
 
 Workstation scripts are guarded by the `workstation-scripts` GitHub Actions workflow:
-- `shellcheck`
-- `bash -n`
+- shellcheck
+- bash -n
+- a small `sourceos status --json` smoke parse
 
 It triggers on PRs and main pushes touching:
 - `profiles/linux-dev/workstation-v0/**`
@@ -31,51 +32,38 @@ Workflow file:
 
 - CLI-first developer experience with keyboard-first navigation.
 - GNOME baseline customization via GSettings and pinned extensions (no GNOME core forks).
-- Albert as an **action bus** with `sourceos` actions.
-- Local status/doctor surfaces that can be opened from the launcher.
+- Open-source launcher palette (Wayland-first): `sourceos palette` uses fuzzel (primary) with wofi/rofi fallbacks.
+- Local status/doctor surfaces that can be opened from the launcher (`sourceos status --open`, `sourceos doctor --open`).
 
 ## Apply
 
 From the repo:
 
-```bash
-./profiles/linux-dev/workstation-v0/install.sh
-```
+  ./profiles/linux-dev/workstation-v0/install.sh
 
 ## Validate
 
-```bash
-./profiles/linux-dev/workstation-v0/doctor.sh
-```
+  ./profiles/linux-dev/workstation-v0/doctor.sh
 
 Or via the installed helper:
 
-```bash
-sourceos doctor
-sourceos status --json
-```
+  sourceos doctor
+  sourceos status --json
 
 ## Nix-first support
 
 This repository is Nix-native. A dev shell is provided:
 
-```bash
-nix develop .#workstation-v0
-```
+  nix develop .#workstation-v0
 
 Notes:
 - The workstation devShell is best-effort; missing nixpkgs attrs will be reported on entry.
-- The profile installers still support non-Nix systems using `dnf/rpm-ostree` and `brew` where applicable.
+- The profile installers still support non-Nix systems using dnf/rpm-ostree and brew where applicable.
 
 ## Trust boundaries
 
-- Third-party RPM repo enablement (Albert OBS fallback) is gated behind:
-
-```bash
-export SOURCEOS_ALLOW_THIRDPARTY_REPOS=1
-```
-
-Without this, the installer prints explicit instructions and exits nonzero.
+- Workstation v0 avoids non-open launchers.
+- Launcher install is best-effort via distro packages (Fedora: fuzzel) and does not silently enable third-party repos.
 
 ## Related docs
 
