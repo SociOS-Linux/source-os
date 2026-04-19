@@ -139,9 +139,11 @@ The SourceOS Albert plugin lives in `SociOS-Linux/albert` (dev branch) and is in
 - `SourceOS: doctor` → `sourceos doctor --open`
 - plus quick-launch actions (sesh/tmux/k9s/lazygit/lazydocker/yazi)
 
-If you are using a distro-provided Albert package, it may not include this SourceOS plugin. In that case:
-- build/install Albert from `SociOS-Linux/albert`, or
-- package the plugin into your chosen distribution lane (future workstream).
+If you are using a distro-provided Albert package, it may not include this SourceOS plugin.
+
+Nix lane:
+- This repo provides a Nix package that builds Albert from the SourceOS fork (including `plugins/sourceos`).
+- Install it with `nix profile install .#albert-sourceos` and restart Albert.
 
 ---
 
