@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # SourceOS workstation helper (linux-dev/workstation-v0)
-# Dependency-light command surface intended to be callable from Albert.
+# Dependency-light command surface intended to be callable from a launcher.
 
 PROFILE_DIR_DEFAULT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROFILE_DIR="${SOURCEOS_PROFILE_DIR:-$PROFILE_DIR_DEFAULT}"
@@ -18,7 +18,6 @@ cache_dir(){
 }
 
 json_escape(){
-  # Minimal JSON string escape (no unicode escaping)
   local s=${1:-}
   s=${s//\\/\\\\}
   s=${s//"/\\"}
@@ -44,14 +43,14 @@ usage(){
 sourceos (workstation helper)
 
 Usage:
+  sourceos palette
   sourceos doctor [--open]
   sourceos status [--json|--open|--write <path>]
   sourceos profile apply
   sourceos profile path
 
 Env:
-  SOURCEOS_PROFILE_DIR                Override profile directory (default: $PROFILE_DIR_DEFAULT)
-  SOURCEOS_ALLOW_THIRDPARTY_REPOS     See gnome/albert-install.sh
+  SOURCEOS_PROFILE_DIR   Override profile directory (default: $PROFILE_DIR_DEFAULT)
 EOF
 }
 
@@ -129,10 +128,6 @@ status_collect(){
   fi
 
   if gnome_detect; then
-    if ! check_bin albert; then
-      REQUIRED_MISSING+=("albert")
-    fi
-
     if ! check_bin gsettings; then
       WARNINGS+=("gsettings missing")
     fi
@@ -255,11 +250,60 @@ status_write(){
   exit "$rc"
 }
 
+palette_menu(){
+  # Print menu entries as: label<TAB>command
+  cat <<'EOF'
+Status (open report)	sourceos status --open
+Doctor (open report)	sourceos doctor --open
+Apply profile	sourceos profile apply
+Open sesh	sesh
+Open tmux	tmux
+Open k9s	k9s
+Open lazygit	lazygit
+Open lazydocker	lazydocker
+Open yazi	yazi
+EOF
+}
+
+palette_select(){
+  # Prefer Wayland-first fuzzel, then wofi, then rofi, then terminal fzf.
+  if have fuzzel; then
+    palette_menu | fuzzel --dmenu --prompt 'sourceos> ' | awk -F '\t' '{print $2}'
+    return
+  fi
+  if have wofi; then
+    palette_menu | wofi --dmenu --prompt 'sourceos> ' | awk -F '\t' '{print $2}'
+    return
+  fi
+  if have rofi; then
+    palette_menu | rofi -dmenu -p 'sourceos> ' | awk -F '\t' '{print $2}'
+    return
+  fi
+  if have fzf; then
+    palette_menu | fzf --with-nth=1 --delimiter=$'\t' --prompt='sourceos> ' | awk -F '\t' '{print $2}'
+    return
+  fi
+
+  err "no launcher found (fuzzel/wofi/rofi/fzf)"
+  return 2
+}
+
+run_palette(){
+  local cmd
+  cmd="$(palette_select || true)"
+  [[ -n "$cmd" ]] || exit 0
+  exec bash -lc "$cmd"
+}
+
 main(){
   local cmd=${1:-}
   case "$cmd" in
     -h|--help|help|"")
       usage
+      ;;
+
+    palette)
+      run_palette
       ;;
 
     doctor)
