@@ -10,6 +10,10 @@ Placement rule:
 
 - `profiles/linux-dev/workstation-v0/`
 
+## Runbook
+
+- [RUNBOOK.md](RUNBOOK.md) — operational “how we actually use it” steps
+
 ## Workstation v0 goals
 
 - CLI-first developer experience with keyboard-first navigation.
