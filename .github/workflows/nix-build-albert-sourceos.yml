@@ -27,5 +27,7 @@ jobs:
       - name: Build albert-sourceos
         run: |
           set -euo pipefail
-          nix --version
-          nix build .#albert-sourceos --extra-experimental-features 'nix-command flakes' -L
+          # Ubuntu nix-bin is configured for daemon mode by default.
+          # GitHub runners do not run systemd; use local store mode for CI.
+          sudo nix --version
+          sudo env NIX_REMOTE=local nix build .#albert-sourceos --extra-experimental-features 'nix-command flakes' -L
