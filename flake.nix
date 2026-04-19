@@ -23,13 +23,64 @@
         });
 
       devShells = forAllSystems (system:
-        let pkgs = nixpkgs.legacyPackages.${system};
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+
+          # Workstation v0 CLI toolset (best-effort).
+          # We intentionally tolerate missing attrs to avoid breaking flake evaluation.
+          workstationV0Names = [
+            # baseline
+            "git" "jq" "nixpkgs-fmt"
+
+            # nav/shell
+            "fzf" "atuin" "bat" "zoxide" "yazi" "eza" "gum" "direnv" "tldr" "fd" "ripgrep"
+
+            # find/replace
+            "sd"
+
+            # git
+            "lazygit" "gh" "diff-so-fancy" "tig" "svu"
+
+            # process/ops
+            "tmux" "sesh" "mprocs" "procs" "lazydocker" "k9s" "btop"
+
+            # json
+            "jnv" "gojq" "fx" "jless" "jqp"
+
+            # disk
+            "dua" "dust" "kondo"
+
+            # docs/bench/watch
+            "glow" "hyperfine" "entr" "curlie"
+
+            # file motion
+            "rclone" "rsync" "minio-client"
+
+            # launcher (optional)
+            "albert"
+          ];
+
+          haveAttr = n: builtins.hasAttr n pkgs;
+          missing = lib.filter (n: !(haveAttr n)) workstationV0Names;
+          presentPkgs = lib.filter (p: p != null) (map (n: if haveAttr n then pkgs.${n} else null) workstationV0Names);
+          missingStr = lib.concatStringsSep " " missing;
         in {
           default = pkgs.mkShell {
             packages = with pkgs; [ git jq nixpkgs-fmt ];
             shellHook = ''
               echo "SourceOS Linux development shell"
               echo "See docs/repository-layout.md, docs/agentplane-integration.md, and docs/mesh/README.md"
+            '';
+          };
+
+          workstation-v0 = pkgs.mkShell {
+            packages = presentPkgs;
+            shellHook = ''
+              echo "SourceOS Workstation v0 dev shell"
+              echo "See docs/workstation/README.md"
+              if [ -n "${missingStr}" ]; then
+                echo "NOTE: missing nixpkgs attrs (not added): ${missingStr}"
+              fi
             '';
           };
         });
