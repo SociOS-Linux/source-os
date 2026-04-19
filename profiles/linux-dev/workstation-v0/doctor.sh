@@ -95,8 +95,11 @@ main(){
   check mc
   check rsync
 
-  # GNOME baseline signals (non-fatal)
+  # GNOME expectations
   if gnome_detect; then
+    # Albert becomes a must-have in GNOME deployments.
+    check albert
+
     if have gsettings; then
       info "gnome: detected; gsettings present"
 
