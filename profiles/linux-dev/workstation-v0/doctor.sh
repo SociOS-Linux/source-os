@@ -119,6 +119,8 @@ main(){
     check_gnome_extension 'dash-to-dock@micxgx.gmail.com'
     check_gnome_extension 'appindicatorsupport@rgcjonas.gmail.com'
 
+    # Autostart is intentionally not enforced.
+
   else
     info "gnome: not detected (ok)"
   fi
