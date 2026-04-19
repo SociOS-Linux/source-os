@@ -38,6 +38,32 @@ check_gnome_extension(){
   fi
 }
 
+check_sourceos_binding(){
+  # Ensure the `sourceos` command on PATH is bound to THIS profile directory.
+  if ! have sourceos; then
+    err "missing: sourceos"
+    return
+  fi
+
+  local expected
+  expected="$(cd "$(dirname "$0")" && pwd)"
+
+  local got
+  got="$(sourceos profile path 2>/dev/null || true)"
+
+  if [[ -z "$got" ]]; then
+    err "sourceos present but 'sourceos profile path' failed"
+    return
+  fi
+
+  if [[ "$got" != "$expected" ]]; then
+    err "sourceos points to different profile dir: got=$got expected=$expected"
+    return
+  fi
+
+  info "ok: sourceos (profile bound)"
+}
+
 main(){
   info "doctor: linux-dev/workstation-v0"
 
@@ -60,7 +86,7 @@ main(){
   check brew
 
   # SourceOS helper (needed for Albert SourceOS plugin actions)
-  check sourceos
+  check_sourceos_binding
 
   # Core CLI must-haves
   check fzf
