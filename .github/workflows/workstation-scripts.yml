@@ -1,0 +1,48 @@
+name: workstation-scripts
+
+on:
+  pull_request:
+    paths:
+      - 'profiles/linux-dev/workstation-v0/**'
+      - 'docs/workstation/**'
+      - '.github/workflows/workstation-scripts.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'profiles/linux-dev/workstation-v0/**'
+      - 'docs/workstation/**'
+      - '.github/workflows/workstation-scripts.yml'
+
+jobs:
+  shellcheck-and-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Shellcheck (workstation-v0)
+        run: |
+          set -euo pipefail
+          files=$(git ls-files 'profiles/linux-dev/workstation-v0/**/*.sh' 'profiles/linux-dev/workstation-v0/**/sourceos' 'profiles/linux-dev/workstation-v0/**/install-sourceos-cli.sh' || true)
+          if [ -z "$files" ]; then
+            echo "No scripts found."
+            exit 0
+          fi
+          echo "$files" | xargs -n1 shellcheck -S warning
+
+      - name: Bash syntax check (bash -n)
+        run: |
+          set -euo pipefail
+          files=$(git ls-files 'profiles/linux-dev/workstation-v0/**/*.sh' 'profiles/linux-dev/workstation-v0/**/sourceos' 'profiles/linux-dev/workstation-v0/**/install-sourceos-cli.sh' || true)
+          if [ -z "$files" ]; then
+            echo "No scripts found."
+            exit 0
+          fi
+          echo "$files" | while read -r f; do
+            # shellcheck disable=SC2039
+            bash -n "$f"
+          done
