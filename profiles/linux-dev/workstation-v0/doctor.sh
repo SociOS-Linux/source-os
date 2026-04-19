@@ -38,6 +38,10 @@ check_gnome_extension(){
   fi
 }
 
+autostart_path(){
+  echo "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/albert.desktop"
+}
+
 main(){
   info "doctor: linux-dev/workstation-v0"
 
@@ -115,6 +119,15 @@ main(){
     # Extension pinset (non-fatal)
     check_gnome_extension 'dash-to-dock@micxgx.gmail.com'
     check_gnome_extension 'appindicatorsupport@rgcjonas.gmail.com'
+
+    # Autostart (non-fatal)
+    local ap
+    ap="$(autostart_path)"
+    if [[ -f "$ap" ]]; then
+      info "gnome: albert autostart present: $ap"
+    else
+      warn "gnome: albert autostart missing: $ap"
+    fi
 
   else
     info "gnome: not detected (ok)"
