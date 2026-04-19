@@ -24,6 +24,9 @@ It triggers on PRs and main pushes touching:
 - `profiles/linux-dev/workstation-v0/**`
 - `docs/workstation/**`
 
+Workflow file:
+- `.github/workflows/workstation-scripts.yml`
+
 ## Workstation v0 goals
 
 - CLI-first developer experience with keyboard-first navigation.
