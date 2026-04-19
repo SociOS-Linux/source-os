@@ -63,6 +63,9 @@ main(){
   # USER expectations
   check brew
 
+  # SourceOS helper (needed for Albert SourceOS plugin actions)
+  check sourceos
+
   # Core CLI must-haves
   check fzf
   check atuin

@@ -57,6 +57,16 @@ install_shell_spine(){
   info "Enable by sourcing it from your shell rc (zshrc/bashrc)."
 }
 
+install_sourceos_cli(){
+  local script="$PROFILE_DIR/bin/install-sourceos-cli.sh"
+  if [[ -x "$script" ]]; then
+    info "Installing SourceOS helper CLI to ~/.local/bin"
+    "$script" || warn "sourceos CLI install failed (non-fatal)"
+  else
+    warn "sourceos CLI installer not found: $script"
+  fi
+}
+
 apply_gnome_baseline(){
   local script="$PROFILE_DIR/gnome/apply.sh"
   if [[ -x "$script" ]]; then
@@ -112,6 +122,7 @@ main(){
   install_system
   install_user
   install_shell_spine
+  install_sourceos_cli
   apply_gnome_baseline
   apply_gnome_extensions
   apply_albert_install
