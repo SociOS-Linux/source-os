@@ -3,9 +3,16 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    # SourceOS fork of Albert (dev branch) including the `plugins/sourceos` action bus plugin.
+    # Use git fetcher with submodules enabled because Albert relies on many submodules.
+    albert_src = {
+      url = "git+https://github.com/SociOS-Linux/albert?ref=dev&submodules=1";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, albert_src }:
     let
       lib = nixpkgs.lib;
       systems = [ "x86_64-linux" "aarch64-linux" ];
@@ -19,6 +26,14 @@
           meshd = pkgs.callPackage ./packages/mesh/meshd.nix { };
           meshd-linkd = pkgs.callPackage ./packages/mesh/meshd-linkd.nix { };
           meshd-exitd = pkgs.callPackage ./packages/mesh/meshd-exitd.nix { };
+
+          # Nix lane for Workstation v0: build Albert from our fork so the SourceOS plugin ships.
+          # This keeps clean installs from depending on distro packaging including our plugin.
+          albert-sourceos = pkgs.albert.overrideAttrs (old: {
+            src = albert_src;
+            version = "${old.version or "0.0.0"}-sourceos";
+          });
+
           default = meshd;
         });
 
@@ -81,6 +96,7 @@
               if [ -n "${missingStr}" ]; then
                 echo "NOTE: missing nixpkgs attrs (not added): ${missingStr}"
               fi
+              echo "Nix lane: build/install Albert with SourceOS plugin via: nix profile install .#albert-sourceos"
             '';
           };
         });
