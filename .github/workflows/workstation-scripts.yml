@@ -27,22 +27,32 @@ jobs:
       - name: Shellcheck (workstation-v0)
         run: |
           set -euo pipefail
-          files=$(git ls-files 'profiles/linux-dev/workstation-v0/**/*.sh' 'profiles/linux-dev/workstation-v0/**/sourceos' 'profiles/linux-dev/workstation-v0/**/install-sourceos-cli.sh' || true)
+          # Policy: ShellCheck warnings are treated as failures for workstation-v0 scripts.
+          files=$(git ls-files 'profiles/linux-dev/workstation-v0/**/*.sh' \
+                              'profiles/linux-dev/workstation-v0/**/sourceos' \
+                              'profiles/linux-dev/workstation-v0/**/install-sourceos-cli.sh' || true)
           if [ -z "$files" ]; then
             echo "No scripts found."
             exit 0
           fi
-          echo "$files" | xargs -n1 shellcheck -S warning
+
+          fail=0
+          while IFS= read -r f; do
+            shellcheck -S warning "$f" || fail=1
+          done <<<"$files"
+          exit $fail
 
       - name: Bash syntax check (bash -n)
         run: |
           set -euo pipefail
-          files=$(git ls-files 'profiles/linux-dev/workstation-v0/**/*.sh' 'profiles/linux-dev/workstation-v0/**/sourceos' 'profiles/linux-dev/workstation-v0/**/install-sourceos-cli.sh' || true)
+          files=$(git ls-files 'profiles/linux-dev/workstation-v0/**/*.sh' \
+                              'profiles/linux-dev/workstation-v0/**/sourceos' \
+                              'profiles/linux-dev/workstation-v0/**/install-sourceos-cli.sh' || true)
           if [ -z "$files" ]; then
             echo "No scripts found."
             exit 0
           fi
-          echo "$files" | while read -r f; do
-            # shellcheck disable=SC2039
+
+          while IFS= read -r f; do
             bash -n "$f"
-          done
+          done <<<"$files"
