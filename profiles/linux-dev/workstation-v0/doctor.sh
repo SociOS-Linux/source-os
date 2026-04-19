@@ -39,7 +39,6 @@ check_gnome_extension(){
 }
 
 check_sourceos_binding(){
-  # Ensure the `sourceos` command on PATH is bound to THIS profile directory.
   if ! have sourceos; then
     err "missing: sourceos"
     return
@@ -64,6 +63,15 @@ check_sourceos_binding(){
   info "ok: sourceos (profile bound)"
 }
 
+check_launcher(){
+  # Require at least one launcher for the SourceOS palette on GNOME.
+  if have fuzzel || have wofi || have rofi; then
+    info "ok: launcher (fuzzel/wofi/rofi)"
+    return
+  fi
+  err "missing: launcher (need fuzzel/wofi/rofi for sourceos palette)"
+}
+
 main(){
   info "doctor: linux-dev/workstation-v0"
 
@@ -85,7 +93,7 @@ main(){
   # USER expectations
   check brew
 
-  # SourceOS helper (needed for Albert SourceOS plugin actions)
+  # SourceOS helper
   check_sourceos_binding
 
   # Core CLI must-haves
@@ -122,7 +130,7 @@ main(){
 
   # GNOME expectations
   if gnome_detect; then
-    check albert
+    check_launcher
 
     if have gsettings; then
       info "gnome: detected; gsettings present"
@@ -135,7 +143,7 @@ main(){
       local hk
       hk=$(gsettings get org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${custom0} binding 2>/dev/null || true)
       if [[ -n "$hk" ]]; then
-        info "gnome: albert binding = ${hk}"
+        info "gnome: hotkey binding = ${hk}"
       fi
 
     else
@@ -144,8 +152,6 @@ main(){
 
     check_gnome_extension 'dash-to-dock@micxgx.gmail.com'
     check_gnome_extension 'appindicatorsupport@rgcjonas.gmail.com'
-
-    # Autostart is intentionally not enforced.
 
   else
     info "gnome: not detected (ok)"

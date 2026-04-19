@@ -9,7 +9,7 @@ Key properties:
 - CLI-first, keyboard-first.
 - GNOME customization is **behavioral** (GSettings + extensions), no GNOME core forks.
 - `sourceos` is installed as a **profile-pinned wrapper** (stable command surface).
-- Albert is installed best-effort; third-party repo fallback is **opt-in**.
+- SourceOS uses an **open-source launcher palette** (Wayland-first) for Super+Space.
 
 ---
 
@@ -17,7 +17,7 @@ Key properties:
 
 We assume:
 - Fedora / Silverblue / CoreOS-derived host, or any Linux host with `dnf` or `rpm-ostree`.
-- GNOME session if you want the GNOME+Albert integration.
+- GNOME session if you want the GNOME integration.
 
 Quick checks:
 
@@ -45,25 +45,27 @@ Notes:
   - SYSTEM baseline (git/ssh/podman/toolbox/wl-clipboard/jq/xclip)
   - USER toolset via `brew` (manifest-driven)
   - shell spine config to `$XDG_CONFIG_HOME/sourceos/shell/common.sh`
-  - GNOME baseline + extensions + Albert hotkey
+  - GNOME baseline + extensions
+  - open-source launcher (fuzzel preferred) + SourceOS palette hotkey
   - `sourceos` helper wrapper into `~/.local/bin`
 
 ---
 
-## 2) Trust boundary: Albert install fallback
+## 2) Launcher palette (open-source)
 
-Albert install logic:
-1. Try native repos (`dnf` / `rpm-ostree`).
-2. If not available, **do not** automatically add third-party repos.
+SourceOS uses an open-source launcher palette for Super+Space.
 
-To allow the optional OBS repo fallback, explicitly opt in:
+Priority order:
+1) `fuzzel` (Wayland-first, MIT)
+2) `wofi` (GPL-3.0-only)
+3) `rofi` (GPL)
+4) terminal fallback: `fzf`
+
+The palette is invoked by:
 
 ```bash
-export SOURCEOS_ALLOW_THIRDPARTY_REPOS=1
-./profiles/linux-dev/workstation-v0/install.sh
+sourceos palette
 ```
-
-If you do not set this, the installer will print the exact `.repo` URL and exit non-zero for the Albert install step.
 
 ---
 
@@ -110,7 +112,7 @@ Exit codes:
 ### Hotkey
 
 The profile applies a GNOME custom keybinding:
-- `<Super>space` → `albert toggle`
+- `<Super>space` → `sourceos palette`
 
 If GNOME doesn’t pick it up immediately, log out/in.
 
@@ -124,28 +126,7 @@ On `rpm-ostree`, GNOME shell extensions may require reboot/logout after install.
 
 ---
 
-## 6) Albert integration (SourceOS actions)
-
-Albert must be running for the hotkey to work.
-
-Basic verification:
-
-```bash
-command -v albert && albert --help >/dev/null 2>&1 || true
-```
-
-The SourceOS Albert plugin lives in `SociOS-Linux/albert` (dev branch) and is intended to provide:
-- `SourceOS: status` → `sourceos status --open`
-- `SourceOS: doctor` → `sourceos doctor --open`
-- plus quick-launch actions (sesh/tmux/k9s/lazygit/lazydocker/yazi)
-
-If you are using a distro-provided Albert package, it may not include this SourceOS plugin. In that case:
-- build/install Albert from `SociOS-Linux/albert`, or
-- package the plugin into your chosen distribution lane (future workstream).
-
----
-
-## 7) One-line acceptance test
+## 6) One-line acceptance test
 
 After install, this should succeed:
 
@@ -154,8 +135,8 @@ sourceos status --json && sourceos doctor
 ```
 
 And on GNOME, you should be able to:
-- press `<Super>space` to toggle Albert
-- run SourceOS actions from inside Albert (when plugin is installed)
+- press `<Super>space` to open the SourceOS palette
+- run SourceOS actions from the palette
 
 ---
 

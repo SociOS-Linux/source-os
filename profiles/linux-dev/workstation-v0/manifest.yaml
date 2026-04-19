@@ -14,6 +14,8 @@ spec:
         - wl-clipboard
         - jq
         - xclip
+        # launcher (Wayland-first)
+        - fuzzel
       dnf:
         - git
         - openssh-clients
@@ -22,6 +24,8 @@ spec:
         - wl-clipboard
         - jq
         - xclip
+        # launcher (Wayland-first)
+        - fuzzel
     user:
       brew:
         - fzf
@@ -73,7 +77,10 @@ spec:
           enabled: true
           note: "libinput gestures; validate hardware"
   launcher:
-    albert:
-      plugin:
-        id: sourceos
-        trigger: "sourceos "
+    palette:
+      primary: fuzzel
+      fallbacks:
+        - wofi
+        - rofi
+      trigger: "<Super>space"
+      command: "sourceos palette"

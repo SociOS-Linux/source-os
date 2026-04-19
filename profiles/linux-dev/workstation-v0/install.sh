@@ -87,6 +87,27 @@ apply_gnome_extensions(){
   fi
 }
 
+apply_launcher_install(){
+  local script="$PROFILE_DIR/gnome/launcher-install.sh"
+  if [[ -x "$script" ]]; then
+    info "Installing launcher (best-effort)"
+    "$script" || warn "launcher install failed (non-fatal)"
+  else
+    warn "launcher install script not found: $script"
+  fi
+}
+
+apply_palette_hotkey(){
+  local script="$PROFILE_DIR/gnome/palette-hotkey.sh"
+  if [[ -x "$script" ]]; then
+    info "Setting palette hotkey (best-effort)"
+    "$script" || warn "palette hotkey setup failed (non-fatal)"
+  else
+    warn "palette hotkey script not found: $script"
+  fi
+}
+
+# Legacy functions retained for backwards compatibility. Not invoked.
 apply_albert_install(){
   local script="$PROFILE_DIR/gnome/albert-install.sh"
   if [[ -x "$script" ]]; then
@@ -115,8 +136,8 @@ main(){
   install_sourceos_cli
   apply_gnome_baseline
   apply_gnome_extensions
-  apply_albert_install
-  apply_albert_hotkey
+  apply_launcher_install
+  apply_palette_hotkey
   info "installed workstation-v0 (linux-dev)"
   info "next: ./doctor.sh"
 }

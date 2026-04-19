@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Configure a GNOME custom keybinding for Albert.
-# We bind Super+Space to `albert toggle` by default.
+# Configure a GNOME custom keybinding for the SourceOS palette.
+# We bind Super+Space to `sourceos palette`.
 # We also avoid collision with GNOME input-source switching by moving that to Alt+Shift.
 
 info(){ printf "INFO: %s\n" "$*" >&2; }
@@ -28,22 +28,19 @@ main(){
   fi
 
   # Move input source switching away from Super+Space (macOS uses Cmd+Space for search).
-  # GNOME typically uses: org.gnome.desktop.wm.keybindings switch-input-source / switch-input-source-backward
   gsettings set org.gnome.desktop.wm.keybindings switch-input-source "['<Alt>Shift_L']" || true
   gsettings set org.gnome.desktop.wm.keybindings switch-input-source-backward "['<Alt>Shift_R']" || true
 
-  # Add a custom keybinding for Albert.
-  # Path style: /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/
   local base="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"
   local custom0="${base}custom0/"
 
   gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "['${custom0}']" || true
 
-  gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${custom0} name "Albert" || true
-  gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${custom0} command "albert toggle" || true
+  gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${custom0} name "SourceOS Palette" || true
+  gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${custom0} command "sourceos palette" || true
   gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${custom0} binding "<Super>space" || true
 
-  info "Albert hotkey set: <Super>Space → albert toggle"
+  info "SourceOS palette hotkey set: <Super>Space → sourceos palette"
   info "Input source switching moved to Alt+Shift (L/R)"
 }
 
