@@ -96,6 +96,7 @@ apply_albert_install(){
     warn "Albert install script not found: $script"
   fi
 }
+
 apply_albert_hotkey(){
   local script="$PROFILE_DIR/gnome/albert-hotkey.sh"
   if [[ -x "$script" ]]; then
@@ -106,8 +107,6 @@ apply_albert_hotkey(){
   fi
 }
 
-# NOTE: Autostart/persistence mechanisms may be security-sensitive.
-# We do not write autostart entries automatically here.
 main(){
   [[ -f "$MANIFEST" ]] || { err "manifest missing: $MANIFEST"; exit 2; }
   install_system

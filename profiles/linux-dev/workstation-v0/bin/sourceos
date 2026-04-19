@@ -95,10 +95,6 @@ gnome_detect(){
   return 1
 }
 
-autostart_path(){
-  echo "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/albert.desktop"
-}
-
 check_bin(){
   local bin=$1
   if have "$bin"; then
@@ -151,12 +147,6 @@ status_collect(){
     else
       WARNINGS+=("gnome-extensions missing")
     fi
-
-    local ap
-    ap="$(autostart_path)"
-    if [[ ! -f "$ap" ]]; then
-      WARNINGS+=("albert autostart missing: $ap")
-    fi
   fi
 }
 
@@ -172,13 +162,6 @@ status_json(){
 
   local gnome=false
   if gnome_detect; then gnome=true; fi
-
-  local hotkey=""
-  if $gnome && have gsettings; then
-    local base="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"
-    local custom0="${base}custom0/"
-    hotkey=$(gsettings get org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${custom0} binding 2>/dev/null || true)
-  fi
 
   printf '{'
   printf '"profile":"%s"' "$(json_escape "$profile")"
@@ -205,8 +188,6 @@ status_json(){
     printf '"%s"' "$(json_escape "${WARNINGS[$i]}")"
   done
   printf ']'
-
-  printf ',"albert_hotkey":"%s"' "$(json_escape "$hotkey")"
 
   printf '}'
   printf '\n'
