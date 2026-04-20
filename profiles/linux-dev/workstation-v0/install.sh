@@ -10,6 +10,13 @@ warn(){ printf "WARN: %s\n" "$*" >&2; }
 
 have(){ command -v "$1" >/dev/null 2>&1; }
 
+autopatch_enabled(){
+  case "${SOURCEOS_AUTOPATCH_SHELL:-0}" in
+    1|true|TRUE|yes|YES) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 install_system(){
   if have rpm-ostree; then
     info "rpm-ostree detected: installing minimal SYSTEM layer (may require reboot)"
@@ -27,7 +34,7 @@ install_system(){
 }
 
 install_brew(){
-  err "brew not found. Install brew first, then re-run." 
+  err "brew not found. Install brew first, then re-run."
   exit 2
 }
 
@@ -62,6 +69,20 @@ install_sourceos_cli(){
     "$script" || warn "sourceos CLI install failed (non-fatal)"
   else
     warn "sourceos CLI installer not found: $script"
+  fi
+}
+
+patch_shell_rc_if_enabled(){
+  if ! autopatch_enabled; then
+    return 0
+  fi
+
+  local script="$PROFILE_DIR/bin/patch-shell.sh"
+  if [[ -x "$script" ]]; then
+    info "Autopatch enabled: patching shell rc files"
+    "$script" apply || warn "shell rc patch failed (non-fatal)"
+  else
+    warn "autopatch enabled but patch helper missing: $script"
   fi
 }
 
@@ -111,6 +132,7 @@ main(){
   install_user
   install_shell_spine
   install_sourceos_cli
+  patch_shell_rc_if_enabled
   apply_gnome_baseline
   apply_gnome_extensions
   apply_launcher_install
