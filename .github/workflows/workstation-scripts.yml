@@ -101,12 +101,41 @@ jobs:
           ! grep -qF '# >>> sourceos workstation-v0 (fish) >>>' "$tmp"
           ! grep -qF '# <<< sourceos workstation-v0 (fish) <<<' "$tmp"
 
+      - name: Smoke: patch-all apply/revert
+        run: |
+          set -euo pipefail
+          p='profiles/linux-dev/workstation-v0/bin/patch-all.sh'
+          bash -n "$p"
+
+          rc_tmp=$(mktemp)
+          fish_tmp=$(mktemp)
+          printf '# rc\n' > "$rc_tmp"
+          printf '# fish\n' > "$fish_tmp"
+
+          SOURCEOS_RC_FILES="$rc_tmp" SOURCEOS_FISH_CONFIG="$fish_tmp" bash "$p" apply
+          SOURCEOS_RC_FILES="$rc_tmp" SOURCEOS_FISH_CONFIG="$fish_tmp" bash "$p" revert
+
+          ! grep -qF '# >>> sourceos workstation-v0 >>>' "$rc_tmp"
+          ! grep -qF '# <<< sourceos workstation-v0 <<<' "$rc_tmp"
+          ! grep -qF '# >>> sourceos workstation-v0 (fish) >>>' "$fish_tmp"
+          ! grep -qF '# <<< sourceos workstation-v0 (fish) <<<' "$fish_tmp"
+
       - name: Smoke: sourceos help exits cleanly
         run: |
           set -euo pipefail
           f='profiles/linux-dev/workstation-v0/bin/sourceos'
           bash -n "$f"
           SOURCEOS_PROFILE_DIR=profiles/linux-dev/workstation-v0 bash "$f" --help >/dev/null
+
+      - name: Smoke: sourceos fix all dry-run exits cleanly
+        run: |
+          set -euo pipefail
+          f='profiles/linux-dev/workstation-v0/bin/sourceos'
+          rc_tmp=$(mktemp)
+          fish_tmp=$(mktemp)
+          printf '# rc\n' > "$rc_tmp"
+          printf '# fish\n' > "$fish_tmp"
+          SOURCEOS_PROFILE_DIR=profiles/linux-dev/workstation-v0 SOURCEOS_RC_FILES="$rc_tmp" SOURCEOS_FISH_CONFIG="$fish_tmp" bash "$f" fix all dry-run >/dev/null
 
       - name: Smoke: sourceos fix shell dry-run exits cleanly
         run: |

@@ -58,8 +58,11 @@ install_shell_spine(){
   local dst="${XDG_CONFIG_HOME:-$HOME/.config}/sourceos/shell"
   mkdir -p "$dst"
   cp -f "$PROFILE_DIR/shell/common.sh" "$dst/common.sh"
-  info "shell spine installed: $dst/common.sh"
-  info "Enable by sourcing it from your shell rc (zshrc/bashrc)."
+  if [[ -f "$PROFILE_DIR/shell/common.fish" ]]; then
+    cp -f "$PROFILE_DIR/shell/common.fish" "$dst/common.fish"
+  fi
+  info "shell spine installed: $dst"
+  info "Enable by sourcing it from your shell rc or use the autopatch helpers."
 }
 
 install_sourceos_cli(){
@@ -77,6 +80,14 @@ patch_shell_rc_if_enabled(){
     return 0
   fi
 
+  local all_script="$PROFILE_DIR/bin/patch-all.sh"
+  if [[ -x "$all_script" ]]; then
+    info "Autopatch enabled: applying composite shell/fish patch helper"
+    "$all_script" apply || warn "composite patch helper failed (non-fatal)"
+    return 0
+  fi
+
+  # Fallback for partial installs.
   local sh_script="$PROFILE_DIR/bin/patch-shell.sh"
   if [[ -x "$sh_script" ]]; then
     info "Autopatch enabled: patching shell rc files"
@@ -85,7 +96,6 @@ patch_shell_rc_if_enabled(){
     warn "autopatch enabled but patch helper missing: $sh_script"
   fi
 
-  # Optional: patch fish config if present.
   local fish_script="$PROFILE_DIR/bin/patch-fish.sh"
   if [[ -x "$fish_script" ]]; then
     info "Autopatch enabled: patching fish config (if present)"

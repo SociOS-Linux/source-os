@@ -48,17 +48,9 @@ Notes:
   - open-source launcher (fuzzel preferred) + SourceOS palette hotkey
   - `sourceos` helper wrapper into `~/.local/bin`
 
-### Optional: autopatch shell rc
+### Optional: autopatch shell/fish config
 
-If you want the installer to also patch your shell rc files:
-- bash/zsh: `~/.bashrc`, `~/.zshrc`
-- fish: `$XDG_CONFIG_HOME/fish/config.fish` (if present)
-
-It will:
-- ensure `$HOME/.local/bin` is on PATH
-- source the SourceOS shell spine
-
-Run:
+If you want the installer to also patch your shell config files, run:
 
 ```bash
 SOURCEOS_AUTOPATCH_SHELL=1 ./profiles/linux-dev/workstation-v0/install.sh
@@ -67,6 +59,10 @@ SOURCEOS_AUTOPATCH_SHELL=1 ./profiles/linux-dev/workstation-v0/install.sh
 Unified command surface:
 
 ```bash
+sourceos fix all dry-run
+sourceos fix all apply
+sourceos fix all revert
+
 sourceos fix shell dry-run
 sourceos fix shell apply
 sourceos fix shell revert
@@ -76,9 +72,17 @@ sourceos fix fish apply
 sourceos fix fish revert
 ```
 
+`fix all` orchestrates:
+- bash/zsh rc patch helper
+- fish config patch helper
+
 Low-level helpers remain available too:
 
 ```bash
+./profiles/linux-dev/workstation-v0/bin/patch-all.sh dry-run
+./profiles/linux-dev/workstation-v0/bin/patch-all.sh apply
+./profiles/linux-dev/workstation-v0/bin/patch-all.sh revert
+
 ./profiles/linux-dev/workstation-v0/bin/patch-shell.sh dry-run
 ./profiles/linux-dev/workstation-v0/bin/patch-shell.sh apply
 ./profiles/linux-dev/workstation-v0/bin/patch-shell.sh revert
@@ -107,6 +111,7 @@ sourceos palette
 ```
 
 The palette includes:
+- fix all configs (dry-run/apply/revert)
 - fix shell rc (dry-run/apply/revert)
 - fix fish config (dry-run/apply/revert)
 - status / doctor
