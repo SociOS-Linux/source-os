@@ -27,9 +27,7 @@ install_system(){
 }
 
 install_brew(){
-  err "brew not found. Install Homebrew/Linuxbrew, then re-run."
-  err "macOS: https://brew.sh"
-  err "Linuxbrew: https://docs.brew.sh/Homebrew-on-Linux"
+  err "brew not found. Install brew first, then re-run." 
   exit 2
 }
 
@@ -104,27 +102,6 @@ apply_palette_hotkey(){
     "$script" || warn "palette hotkey setup failed (non-fatal)"
   else
     warn "palette hotkey script not found: $script"
-  fi
-}
-
-# Legacy functions retained for backwards compatibility. Not invoked.
-apply_albert_install(){
-  local script="$PROFILE_DIR/gnome/albert-install.sh"
-  if [[ -x "$script" ]]; then
-    info "Installing Albert (best-effort)"
-    "$script" || warn "Albert install failed (non-fatal)"
-  else
-    warn "Albert install script not found: $script"
-  fi
-}
-
-apply_albert_hotkey(){
-  local script="$PROFILE_DIR/gnome/albert-hotkey.sh"
-  if [[ -x "$script" ]]; then
-    info "Setting Albert hotkey (best-effort)"
-    "$script" || warn "Albert hotkey setup failed (non-fatal)"
-  else
-    warn "Albert hotkey script not found: $script"
   fi
 }
 
