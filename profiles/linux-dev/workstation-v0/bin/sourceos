@@ -44,6 +44,7 @@ sourceos (workstation helper)
 
 Usage:
   sourceos palette
+  sourceos fix all [apply|dry-run|revert]
   sourceos fix shell [apply|dry-run|revert]
   sourceos fix fish [apply|dry-run|revert]
   sourceos doctor [--open]
@@ -90,6 +91,13 @@ run_apply(){
 
 profile_path(){
   echo "$PROFILE_DIR"
+}
+
+run_fix_all(){
+  local mode=${1:-apply}
+  local s="$PROFILE_DIR/bin/patch-all.sh"
+  [[ -x "$s" ]] || { err "patch-all helper missing: $s"; exit 2; }
+  exec "$s" "$mode"
 }
 
 run_fix_shell(){
@@ -271,6 +279,9 @@ status_write(){
 palette_menu(){
   # Print menu entries as: label<TAB>command
   cat <<'EOF'
+Palette: Fix all configs (dry-run)	sourceos fix all dry-run
+Palette: Fix all configs (apply)	sourceos fix all apply
+Palette: Revert all config patches	sourceos fix all revert
 Palette: Fix shell rc (dry-run)	sourceos fix shell dry-run
 Palette: Fix shell rc (apply)	sourceos fix shell apply
 Palette: Revert shell rc patch	sourceos fix shell revert
@@ -333,6 +344,10 @@ main(){
     fix)
       shift || true
       case "${1:-}" in
+        all)
+          shift || true
+          run_fix_all "${1:-apply}"
+          ;;
         shell)
           shift || true
           run_fix_shell "${1:-apply}"
