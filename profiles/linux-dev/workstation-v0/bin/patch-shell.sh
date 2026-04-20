@@ -2,10 +2,11 @@
 set -euo pipefail
 
 # Patch shell rc files to:
-# - ensure ~/.local/bin is on PATH
+# - ensure $HOME/.local/bin is on PATH
 # - source the SourceOS shell spine (`$XDG_CONFIG_HOME/sourceos/shell/common.sh`)
 #
 # Idempotent: uses a marker block.
+# CI/test hook: SOURCEOS_RC_FILES may be set to a colon-separated list of rc files.
 
 MODE="${1:-apply}"  # apply|dry-run
 
@@ -31,8 +32,17 @@ EOF
 }
 
 rc_candidates() {
-  echo "$HOME/.bashrc"
-  echo "$HOME/.zshrc"
+  if [[ -n "${SOURCEOS_RC_FILES:-}" ]]; then
+    local IFS=':'
+    # shellcheck disable=SC2206
+    read -r -a arr <<<"${SOURCEOS_RC_FILES}"
+    for f in "${arr[@]}"; do
+      [[ -n "$f" ]] && printf '%s\n' "$f"
+    done
+    return 0
+  fi
+
+  printf '%s\n' "$HOME/.bashrc" "$HOME/.zshrc"
 }
 
 has_block() {
@@ -43,7 +53,7 @@ has_block() {
 apply_to_file() {
   local f=$1
 
-  if [ ! -e "$f" ]; then
+  if [[ ! -e "$f" ]]; then
     warn "rc file not found (skipping): $f"
     return 0
   fi
@@ -53,7 +63,7 @@ apply_to_file() {
     return 0
   fi
 
-  if [ "$MODE" = "dry-run" ]; then
+  if [[ "$MODE" == "dry-run" ]]; then
     info "would patch: $f"
     return 0
   fi
@@ -81,7 +91,7 @@ main(){
   done < <(rc_candidates)
 
   info "done"
-  if [ "$MODE" = "dry-run" ]; then
+  if [[ "$MODE" == "dry-run" ]]; then
     info "re-run with: $0 apply"
   fi
 }
