@@ -44,7 +44,8 @@ sourceos (workstation helper)
 
 Usage:
   sourceos palette
-  sourceos fix shell [apply|dry-run]
+  sourceos fix shell [apply|dry-run|revert]
+  sourceos fix fish [apply|dry-run|revert]
   sourceos doctor [--open]
   sourceos status [--json|--open|--write <path>]
   sourceos profile apply
@@ -52,6 +53,8 @@ Usage:
 
 Env:
   SOURCEOS_PROFILE_DIR   Override profile directory (default: $PROFILE_DIR_DEFAULT)
+  SOURCEOS_RC_FILES      Test hook for patch-shell.sh
+  SOURCEOS_FISH_CONFIG   Test hook for patch-fish.sh
 EOF
 }
 
@@ -93,6 +96,13 @@ run_fix_shell(){
   local mode=${1:-apply}
   local s="$PROFILE_DIR/bin/patch-shell.sh"
   [[ -x "$s" ]] || { err "patch-shell helper missing: $s"; exit 2; }
+  exec "$s" "$mode"
+}
+
+run_fix_fish(){
+  local mode=${1:-apply}
+  local s="$PROFILE_DIR/bin/patch-fish.sh"
+  [[ -x "$s" ]] || { err "patch-fish helper missing: $s"; exit 2; }
   exec "$s" "$mode"
 }
 
@@ -263,6 +273,10 @@ palette_menu(){
   cat <<'EOF'
 Palette: Fix shell rc (dry-run)	sourceos fix shell dry-run
 Palette: Fix shell rc (apply)	sourceos fix shell apply
+Palette: Revert shell rc patch	sourceos fix shell revert
+Palette: Fix fish config (dry-run)	sourceos fix fish dry-run
+Palette: Fix fish config (apply)	sourceos fix fish apply
+Palette: Revert fish config patch	sourceos fix fish revert
 Status (open report)	sourceos status --open
 Doctor (open report)	sourceos doctor --open
 Apply profile	sourceos profile apply
@@ -322,6 +336,10 @@ main(){
         shell)
           shift || true
           run_fix_shell "${1:-apply}"
+          ;;
+        fish)
+          shift || true
+          run_fix_fish "${1:-apply}"
           ;;
         *)
           err "unknown fix target: ${1:-}"
