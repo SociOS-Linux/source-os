@@ -25,9 +25,7 @@ Quick checks:
 uname -a && echo "XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP:-}" && command -v rpm-ostree || true && command -v dnf || true
 ```
 
-If Homebrew/Linuxbrew is not installed, install it first (inspect scripts before running):
-- https://brew.sh
-- https://docs.brew.sh/Homebrew-on-Linux
+If Homebrew/Linuxbrew is not installed, install it first.
 
 ---
 
@@ -48,6 +46,25 @@ Notes:
   - GNOME baseline + extensions
   - open-source launcher (fuzzel preferred) + SourceOS palette hotkey
   - `sourceos` helper wrapper into `~/.local/bin`
+
+### Optional: autopatch shell rc
+
+If you want the installer to also patch your shell rc files (`~/.bashrc`, `~/.zshrc`) to:
+- ensure `$HOME/.local/bin` is on PATH
+- source the SourceOS shell spine
+
+Run:
+
+```bash
+SOURCEOS_AUTOPATCH_SHELL=1 ./profiles/linux-dev/workstation-v0/install.sh
+```
+
+Or via the palette:
+
+```bash
+sourceos fix shell dry-run
+sourceos fix shell apply
+```
 
 ---
 
