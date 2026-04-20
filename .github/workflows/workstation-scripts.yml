@@ -86,6 +86,15 @@ jobs:
           ! grep -qF '# >>> sourceos workstation-v0 >>>' "$tmp"
           ! grep -qF '# <<< sourceos workstation-v0 <<<' "$tmp"
 
+      - name: Smoke: patch-shell JSON contract parses
+        run: |
+          set -euo pipefail
+          p='profiles/linux-dev/workstation-v0/bin/patch-shell.sh'
+          tmp=$(mktemp)
+          printf '# rc\n' > "$tmp"
+          out=$(SOURCEOS_RC_FILES="$tmp" bash "$p" dry-run --json)
+          python3 -c 'import json,sys; j=json.loads(sys.stdin.read()); assert j["kind"]=="sourceos.fix.shell"; assert j["mode"]=="dry-run"; assert "summary" in j; assert isinstance(j["results"], list); print("ok")' <<<"$out"
+
       - name: Smoke: patch-fish apply/revert
         run: |
           set -euo pipefail
@@ -100,6 +109,15 @@ jobs:
 
           ! grep -qF '# >>> sourceos workstation-v0 (fish) >>>' "$tmp"
           ! grep -qF '# <<< sourceos workstation-v0 (fish) <<<' "$tmp"
+
+      - name: Smoke: patch-fish JSON contract parses
+        run: |
+          set -euo pipefail
+          p='profiles/linux-dev/workstation-v0/bin/patch-fish.sh'
+          tmp=$(mktemp)
+          printf '# fish\n' > "$tmp"
+          out=$(SOURCEOS_FISH_CONFIG="$tmp" bash "$p" dry-run --json)
+          python3 -c 'import json,sys; j=json.loads(sys.stdin.read()); assert j["kind"]=="sourceos.fix.fish"; assert j["mode"]=="dry-run"; assert "result" in j; print("ok")' <<<"$out"
 
       - name: Smoke: patch-all apply/revert
         run: |
@@ -120,6 +138,17 @@ jobs:
           ! grep -qF '# >>> sourceos workstation-v0 (fish) >>>' "$fish_tmp"
           ! grep -qF '# <<< sourceos workstation-v0 (fish) <<<' "$fish_tmp"
 
+      - name: Smoke: patch-all JSON contract parses
+        run: |
+          set -euo pipefail
+          p='profiles/linux-dev/workstation-v0/bin/patch-all.sh'
+          rc_tmp=$(mktemp)
+          fish_tmp=$(mktemp)
+          printf '# rc\n' > "$rc_tmp"
+          printf '# fish\n' > "$fish_tmp"
+          out=$(SOURCEOS_RC_FILES="$rc_tmp" SOURCEOS_FISH_CONFIG="$fish_tmp" bash "$p" dry-run --json)
+          python3 -c 'import json,sys; j=json.loads(sys.stdin.read()); assert j["kind"]=="sourceos.fix.all"; assert j["mode"]=="dry-run"; assert "results" in j and "shell" in j["results"] and "fish" in j["results"]; print("ok")' <<<"$out"
+
       - name: Smoke: sourceos help exits cleanly
         run: |
           set -euo pipefail
@@ -136,6 +165,17 @@ jobs:
           printf '# rc\n' > "$rc_tmp"
           printf '# fish\n' > "$fish_tmp"
           SOURCEOS_PROFILE_DIR=profiles/linux-dev/workstation-v0 SOURCEOS_RC_FILES="$rc_tmp" SOURCEOS_FISH_CONFIG="$fish_tmp" bash "$f" fix all dry-run >/dev/null
+
+      - name: Smoke: sourceos fix all JSON contract parses
+        run: |
+          set -euo pipefail
+          f='profiles/linux-dev/workstation-v0/bin/sourceos'
+          rc_tmp=$(mktemp)
+          fish_tmp=$(mktemp)
+          printf '# rc\n' > "$rc_tmp"
+          printf '# fish\n' > "$fish_tmp"
+          out=$(SOURCEOS_PROFILE_DIR=profiles/linux-dev/workstation-v0 SOURCEOS_RC_FILES="$rc_tmp" SOURCEOS_FISH_CONFIG="$fish_tmp" bash "$f" fix all dry-run --json)
+          python3 -c 'import json,sys; j=json.loads(sys.stdin.read()); assert j["kind"]=="sourceos.fix.all"; assert j["mode"]=="dry-run"; assert "results" in j; print("ok")' <<<"$out"
 
       - name: Smoke: sourceos fix shell dry-run exits cleanly
         run: |
