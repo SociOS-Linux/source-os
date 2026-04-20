@@ -57,7 +57,7 @@ jobs:
             bash -n "$f"
           done <<<"$files"
 
-      - name: Smoke: patch-shell idempotent
+      - name: Smoke: patch-shell apply is idempotent
         run: |
           set -euo pipefail
           p='profiles/linux-dev/workstation-v0/bin/patch-shell.sh'
@@ -72,6 +72,34 @@ jobs:
           test "$(grep -cF '# >>> sourceos workstation-v0 >>>' "$tmp")" -eq 1
           test "$(grep -cF '# <<< sourceos workstation-v0 <<<' "$tmp")" -eq 1
           grep -F 'export PATH="$HOME/.local/bin:$PATH"' "$tmp" >/dev/null
+
+      - name: Smoke: patch-shell revert removes marker block
+        run: |
+          set -euo pipefail
+          p='profiles/linux-dev/workstation-v0/bin/patch-shell.sh'
+          tmp=$(mktemp)
+          printf '# rc\n' > "$tmp"
+
+          SOURCEOS_RC_FILES="$tmp" bash "$p" apply
+          SOURCEOS_RC_FILES="$tmp" bash "$p" revert
+
+          ! grep -qF '# >>> sourceos workstation-v0 >>>' "$tmp"
+          ! grep -qF '# <<< sourceos workstation-v0 <<<' "$tmp"
+
+      - name: Smoke: patch-fish apply/revert
+        run: |
+          set -euo pipefail
+          p='profiles/linux-dev/workstation-v0/bin/patch-fish.sh'
+          bash -n "$p"
+
+          tmp=$(mktemp)
+          printf '# fish\n' > "$tmp"
+
+          SOURCEOS_FISH_CONFIG="$tmp" bash "$p" apply
+          SOURCEOS_FISH_CONFIG="$tmp" bash "$p" revert
+
+          ! grep -qF '# >>> sourceos workstation-v0 (fish) >>>' "$tmp"
+          ! grep -qF '# <<< sourceos workstation-v0 (fish) <<<' "$tmp"
 
       - name: Smoke: sourceos help exits cleanly
         run: |
