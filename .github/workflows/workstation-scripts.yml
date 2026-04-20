@@ -57,6 +57,13 @@ jobs:
             bash -n "$f"
           done <<<"$files"
 
+      - name: Smoke: sourceos help exits cleanly
+        run: |
+          set -euo pipefail
+          f='profiles/linux-dev/workstation-v0/bin/sourceos'
+          bash -n "$f"
+          SOURCEOS_PROFILE_DIR=profiles/linux-dev/workstation-v0 bash "$f" --help >/dev/null
+
       - name: Smoke: sourceos status JSON parses
         run: |
           set -euo pipefail
@@ -80,3 +87,12 @@ req=["profile","ok","gnome","required_missing","optional_missing","warnings"];
 miss=[k for k in req if k not in j];
 assert not miss, "missing keys: "+",".join(miss);
 print("ok")' <<<"$out"
+
+      - name: Drift guard: forbid legacy launcher strings
+        run: |
+          set -euo pipefail
+          # Prevent drift back to non-open launcher references.
+          if grep -RIn --exclude-dir=.git -E 'Albert|albert toggle|SOURCEOS_ALLOW_THIRDPARTY_REPOS' docs/workstation profiles/linux-dev/workstation-v0; then
+            echo "Found forbidden legacy launcher reference." >&2
+            exit 1
+          fi
