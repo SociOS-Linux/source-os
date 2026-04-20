@@ -8,7 +8,7 @@ set -euo pipefail
 # Idempotent: uses a marker block.
 # Modes:
 # - apply (default)
-# - dry-run
+# - dry-run (for apply)
 # - revert (remove the marker block)
 #
 # CI/test hook:
@@ -96,11 +96,6 @@ revert_from_file() {
     return 0
   fi
 
-  if [[ "$MODE" == "dry-run" ]]; then
-    info "would revert: $f"
-    return 0
-  fi
-
   local tmp
   tmp="$(mktemp)"
 
@@ -134,11 +129,7 @@ main(){
 
   info "done"
   if [[ "$MODE" == "dry-run" ]]; then
-    if [[ "$MODE" == "revert" ]]; then
-      info "re-run with: $0 revert"
-    else
-      info "re-run with: $0 apply"
-    fi
+    info "re-run with: $0 apply"
   fi
 }
 
