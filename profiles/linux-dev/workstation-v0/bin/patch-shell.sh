@@ -6,9 +6,15 @@ set -euo pipefail
 # - source the SourceOS shell spine (`$XDG_CONFIG_HOME/sourceos/shell/common.sh`)
 #
 # Idempotent: uses a marker block.
-# CI/test hook: SOURCEOS_RC_FILES may be set to a colon-separated list of rc files.
+# Modes:
+# - apply (default)
+# - dry-run (for apply)
+# - revert (remove the marker block)
+#
+# CI/test hook:
+# - SOURCEOS_RC_FILES may be set to a colon-separated list of rc files.
 
-MODE="${1:-apply}"  # apply|dry-run
+MODE="${1:-apply}"  # apply|dry-run|revert
 
 info(){ printf "INFO: %s\n" "$*" >&2; }
 warn(){ printf "WARN: %s\n" "$*" >&2; }
@@ -77,17 +83,48 @@ apply_to_file() {
   info "patched: $f"
 }
 
+revert_from_file() {
+  local f=$1
+
+  if [[ ! -e "$f" ]]; then
+    warn "rc file not found (skipping): $f"
+    return 0
+  fi
+
+  if ! has_block "$f"; then
+    info "no patch block present: $f"
+    return 0
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+
+  awk -v s="$marker_start" -v e="$marker_end" '
+    $0 == s {skip=1; next}
+    $0 == e {skip=0; next}
+    skip {next}
+    {print}
+  ' "$f" > "$tmp"
+
+  mv "$tmp" "$f"
+  info "reverted: $f"
+}
+
 main(){
   case "$MODE" in
-    apply|dry-run) ;;
+    apply|dry-run|revert) ;;
     *)
-      err "unknown mode: $MODE (use apply|dry-run)"
+      err "unknown mode: $MODE (use apply|dry-run|revert)"
       exit 2
       ;;
   esac
 
   while IFS= read -r rc; do
-    apply_to_file "$rc"
+    if [[ "$MODE" == "revert" ]]; then
+      revert_from_file "$rc"
+    else
+      apply_to_file "$rc"
+    fi
   done < <(rc_candidates)
 
   info "done"

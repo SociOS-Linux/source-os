@@ -64,18 +64,20 @@ Run:
 SOURCEOS_AUTOPATCH_SHELL=1 ./profiles/linux-dev/workstation-v0/install.sh
 ```
 
-Or via the palette:
+Bash/Zsh helper:
 
 ```bash
-sourceos fix shell dry-run
-sourceos fix shell apply
+./profiles/linux-dev/workstation-v0/bin/patch-shell.sh dry-run
+./profiles/linux-dev/workstation-v0/bin/patch-shell.sh apply
+./profiles/linux-dev/workstation-v0/bin/patch-shell.sh revert
 ```
 
-For fish:
+Fish helper:
 
 ```bash
 ./profiles/linux-dev/workstation-v0/bin/patch-fish.sh dry-run
 ./profiles/linux-dev/workstation-v0/bin/patch-fish.sh apply
+./profiles/linux-dev/workstation-v0/bin/patch-fish.sh revert
 ```
 
 ---
