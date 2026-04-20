@@ -44,6 +44,7 @@ sourceos (workstation helper)
 
 Usage:
   sourceos palette
+  sourceos fix shell [apply|dry-run]
   sourceos doctor [--open]
   sourceos status [--json|--open|--write <path>]
   sourceos profile apply
@@ -86,6 +87,13 @@ run_apply(){
 
 profile_path(){
   echo "$PROFILE_DIR"
+}
+
+run_fix_shell(){
+  local mode=${1:-apply}
+  local s="$PROFILE_DIR/bin/patch-shell.sh"
+  [[ -x "$s" ]] || { err "patch-shell helper missing: $s"; exit 2; }
+  exec "$s" "$mode"
 }
 
 gnome_detect(){
@@ -253,6 +261,8 @@ status_write(){
 palette_menu(){
   # Print menu entries as: label<TAB>command
   cat <<'EOF'
+Palette: Fix shell rc (dry-run)	sourceos fix shell dry-run
+Palette: Fix shell rc (apply)	sourceos fix shell apply
 Status (open report)	sourceos status --open
 Doctor (open report)	sourceos doctor --open
 Apply profile	sourceos profile apply
@@ -304,6 +314,21 @@ main(){
 
     palette)
       run_palette
+      ;;
+
+    fix)
+      shift || true
+      case "${1:-}" in
+        shell)
+          shift || true
+          run_fix_shell "${1:-apply}"
+          ;;
+        *)
+          err "unknown fix target: ${1:-}"
+          usage
+          exit 2
+          ;;
+      esac
       ;;
 
     doctor)
