@@ -108,6 +108,22 @@ jobs:
           bash -n "$f"
           SOURCEOS_PROFILE_DIR=profiles/linux-dev/workstation-v0 bash "$f" --help >/dev/null
 
+      - name: Smoke: sourceos fix shell dry-run exits cleanly
+        run: |
+          set -euo pipefail
+          f='profiles/linux-dev/workstation-v0/bin/sourceos'
+          tmp=$(mktemp)
+          printf '# rc\n' > "$tmp"
+          SOURCEOS_PROFILE_DIR=profiles/linux-dev/workstation-v0 SOURCEOS_RC_FILES="$tmp" bash "$f" fix shell dry-run >/dev/null
+
+      - name: Smoke: sourceos fix fish dry-run exits cleanly
+        run: |
+          set -euo pipefail
+          f='profiles/linux-dev/workstation-v0/bin/sourceos'
+          tmp=$(mktemp)
+          printf '# fish\n' > "$tmp"
+          SOURCEOS_PROFILE_DIR=profiles/linux-dev/workstation-v0 SOURCEOS_FISH_CONFIG="$tmp" bash "$f" fix fish dry-run >/dev/null
+
       - name: Smoke: sourceos status JSON parses
         run: |
           set -euo pipefail
