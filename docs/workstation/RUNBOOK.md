@@ -25,9 +25,7 @@ Quick checks:
 uname -a && echo "XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP:-}" && command -v rpm-ostree || true && command -v dnf || true
 ```
 
-If Homebrew/Linuxbrew is not installed, install it first (inspect scripts before running):
-- https://brew.sh
-- https://docs.brew.sh/Homebrew-on-Linux
+If Homebrew/Linuxbrew is not installed, install it first.
 
 ---
 
@@ -45,9 +43,40 @@ Notes:
   - SYSTEM baseline (git/ssh/podman/toolbox/wl-clipboard/jq/xclip)
   - USER toolset via `brew` (manifest-driven)
   - shell spine config to `$XDG_CONFIG_HOME/sourceos/shell/common.sh`
+  - fish spine config to `$XDG_CONFIG_HOME/sourceos/shell/common.fish`
   - GNOME baseline + extensions
   - open-source launcher (fuzzel preferred) + SourceOS palette hotkey
   - `sourceos` helper wrapper into `~/.local/bin`
+
+### Optional: autopatch shell rc
+
+If you want the installer to also patch your shell rc files:
+- bash/zsh: `~/.bashrc`, `~/.zshrc`
+- fish: `$XDG_CONFIG_HOME/fish/config.fish` (if present)
+
+It will:
+- ensure `$HOME/.local/bin` is on PATH
+- source the SourceOS shell spine
+
+Run:
+
+```bash
+SOURCEOS_AUTOPATCH_SHELL=1 ./profiles/linux-dev/workstation-v0/install.sh
+```
+
+Or via the palette:
+
+```bash
+sourceos fix shell dry-run
+sourceos fix shell apply
+```
+
+For fish:
+
+```bash
+./profiles/linux-dev/workstation-v0/bin/patch-fish.sh dry-run
+./profiles/linux-dev/workstation-v0/bin/patch-fish.sh apply
+```
 
 ---
 
