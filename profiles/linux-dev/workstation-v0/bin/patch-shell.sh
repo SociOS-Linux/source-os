@@ -16,24 +16,22 @@ err(){ printf "ERROR: %s\n" "$*" >&2; }
 marker_start="# >>> sourceos workstation-v0 >>>"
 marker_end="# <<< sourceos workstation-v0 <<<"
 
-spine_path='${XDG_CONFIG_HOME:-$HOME/.config}/sourceos/shell/common.sh'
-
 block() {
+  # NOTE: Dollar signs are escaped so we do not bake the *current* PATH into the rc file.
   cat <<EOF
 ${marker_start}
 # Added by SourceOS Workstation v0
-export PATH="$HOME/.local/bin:$PATH"
-if [ -f "${spine_path}" ]; then
-  . "${spine_path}"
+export PATH="\$HOME/.local/bin:\$PATH"
+spine_path="\${XDG_CONFIG_HOME:-\$HOME/.config}/sourceos/shell/common.sh"
+if [ -f "\$spine_path" ]; then
+  . "\$spine_path"
 fi
 ${marker_end}
 EOF
 }
 
 rc_candidates() {
-  # bash
   echo "$HOME/.bashrc"
-  # zsh
   echo "$HOME/.zshrc"
 }
 
@@ -60,8 +58,12 @@ apply_to_file() {
     return 0
   fi
 
-  # Append block at end
-  printf "\n%s\n" "$(block)" >> "$f"
+  {
+    printf '\n'
+    block
+    printf '\n'
+  } >> "$f"
+
   info "patched: $f"
 }
 
