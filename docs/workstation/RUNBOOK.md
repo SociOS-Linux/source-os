@@ -64,17 +64,25 @@ Run:
 SOURCEOS_AUTOPATCH_SHELL=1 ./profiles/linux-dev/workstation-v0/install.sh
 ```
 
-Bash/Zsh helper:
+Unified command surface:
+
+```bash
+sourceos fix shell dry-run
+sourceos fix shell apply
+sourceos fix shell revert
+
+sourceos fix fish dry-run
+sourceos fix fish apply
+sourceos fix fish revert
+```
+
+Low-level helpers remain available too:
 
 ```bash
 ./profiles/linux-dev/workstation-v0/bin/patch-shell.sh dry-run
 ./profiles/linux-dev/workstation-v0/bin/patch-shell.sh apply
 ./profiles/linux-dev/workstation-v0/bin/patch-shell.sh revert
-```
 
-Fish helper:
-
-```bash
 ./profiles/linux-dev/workstation-v0/bin/patch-fish.sh dry-run
 ./profiles/linux-dev/workstation-v0/bin/patch-fish.sh apply
 ./profiles/linux-dev/workstation-v0/bin/patch-fish.sh revert
@@ -97,6 +105,13 @@ The palette is invoked by:
 ```bash
 sourceos palette
 ```
+
+The palette includes:
+- fix shell rc (dry-run/apply/revert)
+- fix fish config (dry-run/apply/revert)
+- status / doctor
+- profile apply
+- common TUI tools
 
 ---
 
