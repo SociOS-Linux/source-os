@@ -77,12 +77,19 @@ patch_shell_rc_if_enabled(){
     return 0
   fi
 
-  local script="$PROFILE_DIR/bin/patch-shell.sh"
-  if [[ -x "$script" ]]; then
+  local sh_script="$PROFILE_DIR/bin/patch-shell.sh"
+  if [[ -x "$sh_script" ]]; then
     info "Autopatch enabled: patching shell rc files"
-    "$script" apply || warn "shell rc patch failed (non-fatal)"
+    "$sh_script" apply || warn "shell rc patch failed (non-fatal)"
   else
-    warn "autopatch enabled but patch helper missing: $script"
+    warn "autopatch enabled but patch helper missing: $sh_script"
+  fi
+
+  # Optional: patch fish config if present.
+  local fish_script="$PROFILE_DIR/bin/patch-fish.sh"
+  if [[ -x "$fish_script" ]]; then
+    info "Autopatch enabled: patching fish config (if present)"
+    "$fish_script" apply || warn "fish config patch failed (non-fatal)"
   fi
 }
 
