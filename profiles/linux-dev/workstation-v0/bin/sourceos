@@ -44,9 +44,9 @@ sourceos (workstation helper)
 
 Usage:
   sourceos palette
-  sourceos fix all [apply|dry-run|revert] [--json]
-  sourceos fix shell [apply|dry-run|revert] [--json]
-  sourceos fix fish [apply|dry-run|revert] [--json]
+  sourceos fix all [apply|dry-run|revert] [--json] [--open|--write <path>]
+  sourceos fix shell [apply|dry-run|revert] [--json] [--open|--write <path>]
+  sourceos fix fish [apply|dry-run|revert] [--json] [--open|--write <path>]
   sourceos doctor [--open]
   sourceos status [--json|--open|--write <path>]
   sourceos profile apply
@@ -61,25 +61,63 @@ EOF
 
 FIX_MODE="apply"
 FIX_JSON=0
+FIX_OPEN=0
+FIX_WRITE_PATH=""
 
 parse_fix_args(){
   FIX_MODE="apply"
   FIX_JSON=0
-  local arg
-  for arg in "$@"; do
-    case "$arg" in
+  FIX_OPEN=0
+  FIX_WRITE_PATH=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
       apply|dry-run|revert)
-        FIX_MODE="$arg"
+        FIX_MODE="$1"
+        shift
         ;;
       --json)
         FIX_JSON=1
+        shift
+        ;;
+      --open)
+        FIX_OPEN=1
+        shift
+        ;;
+      --write)
+        shift
+        if [[ $# -eq 0 ]]; then
+          err "--write requires a path"
+          exit 2
+        fi
+        FIX_WRITE_PATH="$1"
+        shift
         ;;
       *)
-        err "unknown fix argument: $arg (use apply|dry-run|revert [--json])"
+        err "unknown fix argument: $1 (use apply|dry-run|revert [--json] [--open|--write <path>])"
         exit 2
         ;;
     esac
   done
+}
+
+fix_report_path(){
+  local target=$1
+  local mode=$2
+  local d
+  d="$(cache_dir)"
+  mkdir -p "$d"
+  printf '%s/fix-%s-%s.json\n' "$d" "$target" "$mode"
+}
+
+write_text(){
+  local path=$1
+  local text=$2
+  local dir
+  dir="$(dirname "$path")"
+  mkdir -p "$dir"
+  printf '%s\n' "$text" > "$path"
+  info "wrote: $path"
 }
 
 run_doctor(){
@@ -116,37 +154,56 @@ profile_path(){
   echo "$PROFILE_DIR"
 }
 
-run_fix_all(){
-  local mode=$1
-  local json=$2
-  local s="$PROFILE_DIR/bin/patch-all.sh"
-  [[ -x "$s" ]] || { err "patch-all helper missing: $s"; exit 2; }
-  if [[ "$json" == "1" ]]; then
-    exec "$s" "$mode" --json
+run_fix_helper(){
+  local target=$1
+  local mode=$2
+  local json=$3
+  local open=$4
+  local write_path=$5
+  local s="$PROFILE_DIR/bin/patch-${target}.sh"
+
+  [[ -x "$s" ]] || { err "patch-${target} helper missing: $s"; exit 2; }
+
+  if [[ "$json" == "0" && "$open" == "0" && -z "$write_path" ]]; then
+    exec "$s" "$mode"
   fi
-  exec "$s" "$mode"
+
+  local out rc final_path=""
+  set +e
+  out="$($s "$mode" --json)"
+  rc=$?
+  set -e
+
+  if [[ -n "$write_path" ]]; then
+    final_path="$write_path"
+  elif [[ "$open" == "1" ]]; then
+    final_path="$(fix_report_path "$target" "$mode")"
+  fi
+
+  if [[ -n "$final_path" ]]; then
+    write_text "$final_path" "$out"
+    if [[ "$open" == "1" ]]; then
+      open_file "$final_path"
+    fi
+  fi
+
+  if [[ "$json" == "1" ]]; then
+    printf '%s\n' "$out"
+  fi
+
+  exit "$rc"
+}
+
+run_fix_all(){
+  run_fix_helper all "$1" "$2" "$3" "$4"
 }
 
 run_fix_shell(){
-  local mode=$1
-  local json=$2
-  local s="$PROFILE_DIR/bin/patch-shell.sh"
-  [[ -x "$s" ]] || { err "patch-shell helper missing: $s"; exit 2; }
-  if [[ "$json" == "1" ]]; then
-    exec "$s" "$mode" --json
-  fi
-  exec "$s" "$mode"
+  run_fix_helper shell "$1" "$2" "$3" "$4"
 }
 
 run_fix_fish(){
-  local mode=$1
-  local json=$2
-  local s="$PROFILE_DIR/bin/patch-fish.sh"
-  [[ -x "$s" ]] || { err "patch-fish helper missing: $s"; exit 2; }
-  if [[ "$json" == "1" ]]; then
-    exec "$s" "$mode" --json
-  fi
-  exec "$s" "$mode"
+  run_fix_helper fish "$1" "$2" "$3" "$4"
 }
 
 gnome_detect(){
@@ -314,12 +371,15 @@ status_write(){
 palette_menu(){
   # Print menu entries as: label<TAB>command
   cat <<'EOF'
+Palette: Audit fix all (open report)	sourceos fix all dry-run --open
 Palette: Fix all configs (dry-run)	sourceos fix all dry-run
 Palette: Fix all configs (apply)	sourceos fix all apply
 Palette: Revert all config patches	sourceos fix all revert
+Palette: Audit shell patch (open report)	sourceos fix shell dry-run --open
 Palette: Fix shell rc (dry-run)	sourceos fix shell dry-run
 Palette: Fix shell rc (apply)	sourceos fix shell apply
 Palette: Revert shell rc patch	sourceos fix shell revert
+Palette: Audit fish patch (open report)	sourceos fix fish dry-run --open
 Palette: Fix fish config (dry-run)	sourceos fix fish dry-run
 Palette: Fix fish config (apply)	sourceos fix fish apply
 Palette: Revert fish config patch	sourceos fix fish revert
@@ -382,17 +442,17 @@ main(){
         all)
           shift || true
           parse_fix_args "$@"
-          run_fix_all "$FIX_MODE" "$FIX_JSON"
+          run_fix_all "$FIX_MODE" "$FIX_JSON" "$FIX_OPEN" "$FIX_WRITE_PATH"
           ;;
         shell)
           shift || true
           parse_fix_args "$@"
-          run_fix_shell "$FIX_MODE" "$FIX_JSON"
+          run_fix_shell "$FIX_MODE" "$FIX_JSON" "$FIX_OPEN" "$FIX_WRITE_PATH"
           ;;
         fish)
           shift || true
           parse_fix_args "$@"
-          run_fix_fish "$FIX_MODE" "$FIX_JSON"
+          run_fix_fish "$FIX_MODE" "$FIX_JSON" "$FIX_OPEN" "$FIX_WRITE_PATH"
           ;;
         *)
           err "unknown fix target: ${1:-}"
