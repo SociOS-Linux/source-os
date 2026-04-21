@@ -44,9 +44,9 @@ sourceos (workstation helper)
 
 Usage:
   sourceos palette
-  sourceos fix all [apply|dry-run|revert]
-  sourceos fix shell [apply|dry-run|revert]
-  sourceos fix fish [apply|dry-run|revert]
+  sourceos fix all [apply|dry-run|revert] [--json]
+  sourceos fix shell [apply|dry-run|revert] [--json]
+  sourceos fix fish [apply|dry-run|revert] [--json]
   sourceos doctor [--open]
   sourceos status [--json|--open|--write <path>]
   sourceos profile apply
@@ -57,6 +57,29 @@ Env:
   SOURCEOS_RC_FILES      Test hook for patch-shell.sh
   SOURCEOS_FISH_CONFIG   Test hook for patch-fish.sh
 EOF
+}
+
+FIX_MODE="apply"
+FIX_JSON=0
+
+parse_fix_args(){
+  FIX_MODE="apply"
+  FIX_JSON=0
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      apply|dry-run|revert)
+        FIX_MODE="$arg"
+        ;;
+      --json)
+        FIX_JSON=1
+        ;;
+      *)
+        err "unknown fix argument: $arg (use apply|dry-run|revert [--json])"
+        exit 2
+        ;;
+    esac
+  done
 }
 
 run_doctor(){
@@ -94,23 +117,35 @@ profile_path(){
 }
 
 run_fix_all(){
-  local mode=${1:-apply}
+  local mode=$1
+  local json=$2
   local s="$PROFILE_DIR/bin/patch-all.sh"
   [[ -x "$s" ]] || { err "patch-all helper missing: $s"; exit 2; }
+  if [[ "$json" == "1" ]]; then
+    exec "$s" "$mode" --json
+  fi
   exec "$s" "$mode"
 }
 
 run_fix_shell(){
-  local mode=${1:-apply}
+  local mode=$1
+  local json=$2
   local s="$PROFILE_DIR/bin/patch-shell.sh"
   [[ -x "$s" ]] || { err "patch-shell helper missing: $s"; exit 2; }
+  if [[ "$json" == "1" ]]; then
+    exec "$s" "$mode" --json
+  fi
   exec "$s" "$mode"
 }
 
 run_fix_fish(){
-  local mode=${1:-apply}
+  local mode=$1
+  local json=$2
   local s="$PROFILE_DIR/bin/patch-fish.sh"
   [[ -x "$s" ]] || { err "patch-fish helper missing: $s"; exit 2; }
+  if [[ "$json" == "1" ]]; then
+    exec "$s" "$mode" --json
+  fi
   exec "$s" "$mode"
 }
 
@@ -346,15 +381,18 @@ main(){
       case "${1:-}" in
         all)
           shift || true
-          run_fix_all "${1:-apply}"
+          parse_fix_args "$@"
+          run_fix_all "$FIX_MODE" "$FIX_JSON"
           ;;
         shell)
           shift || true
-          run_fix_shell "${1:-apply}"
+          parse_fix_args "$@"
+          run_fix_shell "$FIX_MODE" "$FIX_JSON"
           ;;
         fish)
           shift || true
-          run_fix_fish "${1:-apply}"
+          parse_fix_args "$@"
+          run_fix_fish "$FIX_MODE" "$FIX_JSON"
           ;;
         *)
           err "unknown fix target: ${1:-}"

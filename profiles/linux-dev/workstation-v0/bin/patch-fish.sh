@@ -8,10 +8,15 @@ set -euo pipefail
 # - dry-run
 # - revert (remove the marker block)
 #
+# Output:
+# - human logs to stderr
+# - optional machine-readable JSON to stdout via --json
+#
 # CI/test hook:
 # - SOURCEOS_FISH_CONFIG may override the fish config path.
 
-MODE="${1:-apply}"  # apply|dry-run|revert
+MODE="apply"      # apply|dry-run|revert
+EMIT_JSON=0        # 0|1
 
 info(){ printf "INFO: %s\n" "$*" >&2; }
 warn(){ printf "WARN: %s\n" "$*" >&2; }
@@ -19,6 +24,55 @@ err(){ printf "ERROR: %s\n" "$*" >&2; }
 
 marker_start="# >>> sourceos workstation-v0 (fish) >>>"
 marker_end="# <<< sourceos workstation-v0 (fish) <<<"
+
+RESULT_ACTION=""
+RESULT_FILE=""
+
+parse_args(){
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      apply|dry-run|revert)
+        MODE="$arg"
+        ;;
+      --json)
+        EMIT_JSON=1
+        ;;
+      *)
+        err "unknown argument: $arg (use apply|dry-run|revert [--json])"
+        exit 2
+        ;;
+    esac
+  done
+}
+
+record_result(){
+  RESULT_ACTION="$1"
+  RESULT_FILE="$2"
+}
+
+json_escape(){
+  local s=${1:-}
+  s=${s//\\/\\\\}
+  s=${s//"/\\"}
+  s=${s//$'\n'/\\n}
+  s=${s//$'\r'/\\r}
+  s=${s//$'\t'/\\t}
+  printf '%s' "$s"
+}
+
+emit_json(){
+  printf '{'
+  printf '"kind":"sourceos.fix.fish"'
+  printf ',"mode":"%s"' "$(json_escape "$MODE")"
+  printf ',"ok":true'
+  printf ',"result":{' 
+  printf '"file":"%s"' "$(json_escape "$RESULT_FILE")"
+  printf ',"action":"%s"' "$(json_escape "$RESULT_ACTION")"
+  printf '}'
+  printf '}'
+  printf '\n'
+}
 
 fish_cfg(){
   if [[ -n "${SOURCEOS_FISH_CONFIG:-}" ]]; then
@@ -50,16 +104,19 @@ apply_to_file(){
 
   if [[ ! -e "$f" ]]; then
     warn "fish config not found (skipping): $f"
+    record_result missing_file "$f"
     return 0
   fi
 
   if has_block "$f"; then
     info "already patched: $f"
+    record_result already_patched "$f"
     return 0
   fi
 
   if [[ "$MODE" == "dry-run" ]]; then
     info "would patch: $f"
+    record_result would_patch "$f"
     return 0
   fi
 
@@ -70,6 +127,7 @@ apply_to_file(){
   } >> "$f"
 
   info "patched: $f"
+  record_result patched "$f"
 }
 
 revert_from_file(){
@@ -77,16 +135,13 @@ revert_from_file(){
 
   if [[ ! -e "$f" ]]; then
     warn "fish config not found (skipping): $f"
+    record_result missing_file "$f"
     return 0
   fi
 
   if ! has_block "$f"; then
     info "no patch block present: $f"
-    return 0
-  fi
-
-  if [[ "$MODE" == "dry-run" ]]; then
-    info "would revert: $f"
+    record_result no_patch "$f"
     return 0
   fi
 
@@ -102,16 +157,11 @@ revert_from_file(){
 
   mv "$tmp" "$f"
   info "reverted: $f"
+  record_result reverted "$f"
 }
 
 main(){
-  case "$MODE" in
-    apply|dry-run|revert) ;;
-    *)
-      err "unknown mode: $MODE (use apply|dry-run|revert)"
-      exit 2
-      ;;
-  esac
+  parse_args "$@"
 
   local f
   f="$(fish_cfg)"
@@ -123,6 +173,9 @@ main(){
   fi
 
   info "done"
+  if [[ "$EMIT_JSON" == "1" ]]; then
+    emit_json
+  fi
 }
 
 main "$@"
