@@ -2,6 +2,11 @@
 set -euo pipefail
 
 fail=0
+EMIT_JSON=0
+
+RESULT_LEVELS=()
+RESULT_NAMES=()
+RESULT_MESSAGES=()
 
 info(){ printf "INFO: %s\n" "$*" >&2; }
 warn(){ printf "WARN: %s\n" "$*" >&2; }
@@ -9,12 +14,87 @@ err(){ printf "ERROR: %s\n" "$*" >&2; fail=1; }
 
 have(){ command -v "$1" >/dev/null 2>&1; }
 
+parse_args(){
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      --json)
+        EMIT_JSON=1
+        ;;
+      *)
+        err "unknown argument: $arg (use --json)"
+        exit 2
+        ;;
+    esac
+  done
+}
+
+record_result(){
+  RESULT_LEVELS+=("$1")
+  RESULT_NAMES+=("$2")
+  RESULT_MESSAGES+=("$3")
+}
+
+json_escape(){
+  local s=${1:-}
+  s=${s//\\/\\\\}
+  s=${s//"/\\"}
+  s=${s//$'\n'/\\n}
+  s=${s//$'\r'/\\r}
+  s=${s//$'\t'/\\t}
+  printf '%s' "$s"
+}
+
+count_level(){
+  local needle=$1
+  local count=0
+  local i
+  for ((i=0;i<${#RESULT_LEVELS[@]};i++)); do
+    if [[ "${RESULT_LEVELS[$i]}" == "$needle" ]]; then
+      count=$((count + 1))
+    fi
+  done
+  printf '%d' "$count"
+}
+
+emit_json(){
+  local i
+  local ok=true
+  if [[ $fail -ne 0 ]]; then
+    ok=false
+  fi
+
+  printf '{'
+  printf '"kind":"sourceos.doctor"'
+  printf ',"profile":"linux-dev/workstation-v0"'
+  printf ',"ok":%s' "$ok"
+  printf ',"summary":{'
+  printf '"ok":%s' "$(count_level ok)"
+  printf ',"warn":%s' "$(count_level warn)"
+  printf ',"error":%s' "$(count_level error)"
+  printf ',"info":%s' "$(count_level info)"
+  printf '}'
+  printf ',"results":['
+  for ((i=0;i<${#RESULT_LEVELS[@]};i++)); do
+    [[ $i -gt 0 ]] && printf ','
+    printf '{"level":"%s","name":"%s","message":"%s"}' \
+      "$(json_escape "${RESULT_LEVELS[$i]}")" \
+      "$(json_escape "${RESULT_NAMES[$i]}")" \
+      "$(json_escape "${RESULT_MESSAGES[$i]}")"
+  done
+  printf ']'
+  printf '}'
+  printf '\n'
+}
+
 check(){
   local bin=$1
   if have "$bin"; then
     info "ok: $bin"
+    record_result ok "$bin" "present"
   else
     err "missing: $bin"
+    record_result error "$bin" "missing"
   fi
 }
 
@@ -28,19 +108,23 @@ check_gnome_extension(){
   local uuid=$1
   if ! have gnome-extensions; then
     warn "gnome-extensions missing; cannot validate extension: $uuid"
+    record_result warn "gnome-extension:$uuid" "gnome-extensions missing; cannot validate"
     return 0
   fi
 
   if gnome-extensions list | grep -qx "$uuid"; then
     info "gnome-ext present: $uuid"
+    record_result ok "gnome-extension:$uuid" "present"
   else
     warn "gnome-ext missing: $uuid"
+    record_result warn "gnome-extension:$uuid" "missing"
   fi
 }
 
 check_sourceos_binding(){
   if ! have sourceos; then
     err "missing: sourceos"
+    record_result error "sourceos-binding" "sourceos not found on PATH"
     return
   fi
 
@@ -52,30 +136,35 @@ check_sourceos_binding(){
 
   if [[ -z "$got" ]]; then
     err "sourceos present but 'sourceos profile path' failed"
+    record_result error "sourceos-binding" "sourceos profile path failed"
     return
   fi
 
   if [[ "$got" != "$expected" ]]; then
     err "sourceos points to different profile dir: got=$got expected=$expected"
+    record_result error "sourceos-binding" "profile mismatch"
     return
   fi
 
   info "ok: sourceos (profile bound)"
+  record_result ok "sourceos-binding" "profile bound"
 }
 
 check_launcher(){
-  # Require at least one launcher for the SourceOS palette on GNOME.
   if have fuzzel || have wofi || have rofi; then
     info "ok: launcher (fuzzel/wofi/rofi)"
+    record_result ok launcher "present (fuzzel/wofi/rofi)"
     return
   fi
   err "missing: launcher (need fuzzel/wofi/rofi for sourceos palette)"
+  record_result error launcher "missing (need fuzzel/wofi/rofi)"
 }
 
 main(){
+  parse_args "$@"
+
   info "doctor: linux-dev/workstation-v0"
 
-  # SYSTEM expectations
   check git
   check ssh
   check podman
@@ -83,20 +172,17 @@ main(){
   check wl-copy
   check jq
 
-  # X11 fallback clipboard
   if have xclip; then
     info "ok: xclip"
+    record_result ok xclip "present"
   else
     info "note: xclip missing (only needed on X11)"
+    record_result info xclip "missing optional (only needed on X11)"
   fi
 
-  # USER expectations
   check brew
-
-  # SourceOS helper
   check_sourceos_binding
 
-  # Core CLI must-haves
   check fzf
   check atuin
   check bat
@@ -112,42 +198,43 @@ main(){
   check gh
   check tig
 
-  # Additional
   check sesh
   check procs
   check sd
   check entr
   check curlie
 
-  # JSON
   check jnv
   check gojq
 
-  # File motion
   check rclone
   check mc
   check rsync
 
-  # GNOME expectations
   if gnome_detect; then
+    record_result info gnome "detected"
     check_launcher
 
     if have gsettings; then
       info "gnome: detected; gsettings present"
+      record_result ok gsettings "present"
 
       local base="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"
       local custom0="${base}custom0/"
       local bindings
       bindings=$(gsettings get org.gnome.settings-daemon.plugins.media-keys custom-keybindings || true)
       info "gnome: custom-keybindings = ${bindings}"
+      record_result info gnome-custom-keybindings "$bindings"
       local hk
       hk=$(gsettings get org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:${custom0} binding 2>/dev/null || true)
       if [[ -n "$hk" ]]; then
         info "gnome: hotkey binding = ${hk}"
+        record_result info gnome-hotkey "$hk"
       fi
 
     else
       warn "gnome: detected but gsettings missing"
+      record_result warn gsettings "missing on GNOME host"
     fi
 
     check_gnome_extension 'dash-to-dock@micxgx.gmail.com'
@@ -155,6 +242,11 @@ main(){
 
   else
     info "gnome: not detected (ok)"
+    record_result info gnome "not detected"
+  fi
+
+  if [[ "$EMIT_JSON" == "1" ]]; then
+    emit_json
   fi
 
   if [[ $fail -ne 0 ]]; then
