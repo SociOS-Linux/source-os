@@ -172,6 +172,16 @@ apply_palette_hotkey(){
   fi
 }
 
+apply_mac_defaults(){
+  local script="$PROFILE_DIR/gnome/mac-defaults.sh"
+  if [[ -x "$script" ]]; then
+    info "Applying mac-like GNOME defaults pack (best-effort)"
+    "$script" || warn "mac defaults pack failed (non-fatal)"
+  else
+    warn "mac defaults script not found: $script"
+  fi
+}
+
 main(){
   [[ -f "$MANIFEST" ]] || { err "manifest missing: $MANIFEST"; exit 2; }
   install_system
@@ -186,6 +196,7 @@ main(){
   apply_fusuma_config
   apply_launcher_install
   apply_palette_hotkey
+  apply_mac_defaults
   info "installed workstation-v0 (linux-dev)"
   info "next: ./doctor.sh"
 }
