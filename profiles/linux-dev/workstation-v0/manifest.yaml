@@ -14,8 +14,8 @@ spec:
         - wl-clipboard
         - jq
         - xclip
-        # launcher (Wayland-first)
         - fuzzel
+        - input-remapper
       dnf:
         - git
         - openssh-clients
@@ -24,8 +24,8 @@ spec:
         - wl-clipboard
         - jq
         - xclip
-        # launcher (Wayland-first)
         - fuzzel
+        - input-remapper
     user:
       brew:
         - fzf
@@ -70,12 +70,18 @@ spec:
   desktop:
     gnome:
       inputs:
-        kinto:
+        primary_backend:
+          name: input-remapper
+          rationale: "Packaged on Fedora and works across X11/Wayland at evdev layer"
+        compatibility_backends:
+          - name: xremap
+            rationale: "MIT, app-specific remapping, GNOME Wayland compatible"
+          - name: kinto
+            rationale: "X11/xkeysnail compatibility lane for mac-style shortcuts"
+        gestures:
+          name: fusuma
           enabled: true
-          note: "X11-centric; validate Wayland or use keyd/xremap"
-        fusuma:
-          enabled: true
-          note: "libinput gestures; validate hardware"
+          rationale: "MIT multitouch gesture recognizer using libinput"
   launcher:
     palette:
       primary: fuzzel
