@@ -87,7 +87,6 @@ patch_shell_rc_if_enabled(){
     return 0
   fi
 
-  # Fallback for partial installs.
   local sh_script="$PROFILE_DIR/bin/patch-shell.sh"
   if [[ -x "$sh_script" ]]; then
     info "Autopatch enabled: patching shell rc files"
@@ -123,6 +122,36 @@ apply_gnome_extensions(){
   fi
 }
 
+apply_input_install(){
+  local script="$PROFILE_DIR/gnome/input-install.sh"
+  if [[ -x "$script" ]]; then
+    info "Installing input remap lane (best-effort)"
+    "$script" || warn "input lane install failed (non-fatal)"
+  else
+    warn "input install script not found: $script"
+  fi
+}
+
+apply_fusuma_install(){
+  local script="$PROFILE_DIR/gnome/fusuma-install.sh"
+  if [[ -x "$script" ]]; then
+    info "Installing fusuma gesture lane (best-effort)"
+    "$script" || warn "fusuma install failed (non-fatal)"
+  else
+    warn "fusuma install script not found: $script"
+  fi
+}
+
+apply_fusuma_config(){
+  local script="$PROFILE_DIR/gnome/fusuma-apply.sh"
+  if [[ -x "$script" ]]; then
+    info "Applying fusuma defaults (best-effort)"
+    "$script" || warn "fusuma apply failed (non-fatal)"
+  else
+    warn "fusuma apply script not found: $script"
+  fi
+}
+
 apply_launcher_install(){
   local script="$PROFILE_DIR/gnome/launcher-install.sh"
   if [[ -x "$script" ]]; then
@@ -152,6 +181,9 @@ main(){
   patch_shell_rc_if_enabled
   apply_gnome_baseline
   apply_gnome_extensions
+  apply_input_install
+  apply_fusuma_install
+  apply_fusuma_config
   apply_launcher_install
   apply_palette_hotkey
   info "installed workstation-v0 (linux-dev)"

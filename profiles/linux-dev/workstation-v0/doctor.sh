@@ -160,6 +160,64 @@ check_launcher(){
   record_result error launcher "missing (need fuzzel/wofi/rofi)"
 }
 
+check_input_backend(){
+  if have input-remapper-control; then
+    info "ok: input backend (input-remapper)"
+    record_result ok input-backend "input-remapper"
+    return
+  fi
+  if have xremap; then
+    info "ok: input backend (xremap compatibility)"
+    record_result ok input-backend "xremap"
+    return
+  fi
+  if have xkeysnail; then
+    info "ok: input backend (xkeysnail / kinto compatibility)"
+    record_result ok input-backend "xkeysnail"
+    return
+  fi
+
+  warn "no keyboard remap backend detected (input-remapper/xremap/xkeysnail)"
+  record_result warn input-backend "missing (input-remapper/xremap/xkeysnail)"
+}
+
+check_fusuma_lane(){
+  local cfg="${XDG_CONFIG_HOME:-$HOME/.config}/fusuma/config.yml"
+  local svc="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/sourceos-fusuma.service"
+
+  if have fusuma; then
+    info "ok: fusuma"
+    record_result ok fusuma "binary present"
+  else
+    warn "fusuma missing"
+    record_result warn fusuma "binary missing"
+  fi
+
+  if [[ -f "$cfg" ]]; then
+    info "ok: fusuma config"
+    record_result ok fusuma-config "$cfg"
+  else
+    warn "fusuma config missing: $cfg"
+    record_result warn fusuma-config "missing"
+  fi
+
+  if [[ -f "$svc" ]]; then
+    info "ok: fusuma user service"
+    record_result ok fusuma-service "$svc"
+  else
+    warn "fusuma user service missing: $svc"
+    record_result warn fusuma-service "missing"
+  fi
+
+  if id -nG "$USER" 2>/dev/null | grep -qw input; then
+    info "ok: user is in input group"
+    record_result ok input-group "present"
+  else
+    warn "user is not in input group (fusuma may lack device access)"
+    record_result warn input-group "missing"
+  fi
+}
+
 main(){
   parse_args "$@"
 
@@ -214,6 +272,8 @@ main(){
   if gnome_detect; then
     record_result info gnome "detected"
     check_launcher
+    check_input_backend
+    check_fusuma_lane
 
     if have gsettings; then
       info "gnome: detected; gsettings present"
