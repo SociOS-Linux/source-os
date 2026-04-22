@@ -36,6 +36,7 @@ Workflow file:
 - Primary keyboard remap lane: `input-remapper` on Fedora/GNOME.
 - Compatibility remap lanes: `xremap` and `kinto` (explicit compatibility path, not default).
 - Touchpad gesture lane: `fusuma`.
+- Mac-like GNOME behavior pack: left-side window controls, hot corners off, 12h clock, Files on `Super+E`, Terminal on `Super+Return`, dock favorites seeded.
 - Local status/doctor surfaces that can be opened from the launcher (`sourceos status --open`, `sourceos doctor --open`).
 
 ## Apply

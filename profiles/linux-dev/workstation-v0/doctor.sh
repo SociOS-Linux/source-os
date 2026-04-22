@@ -218,6 +218,48 @@ check_fusuma_lane(){
   fi
 }
 
+check_gsettings_equals(){
+  local schema=$1
+  local key=$2
+  local expected=$3
+  local name=$4
+  local got
+  got=$(gsettings get "$schema" "$key" 2>/dev/null || true)
+  if [[ "$got" == "$expected" ]]; then
+    info "ok: $name"
+    record_result ok "$name" "$expected"
+  else
+    warn "$name mismatch: got=${got:-unset} expected=$expected"
+    record_result warn "$name" "expected=$expected got=${got:-unset}"
+  fi
+}
+
+check_gsettings_contains(){
+  local schema=$1
+  local key=$2
+  local needle=$3
+  local name=$4
+  local got
+  got=$(gsettings get "$schema" "$key" 2>/dev/null || true)
+  if grep -Fq "$needle" <<<"$got"; then
+    info "ok: $name"
+    record_result ok "$name" "$needle"
+  else
+    warn "$name missing: $needle"
+    record_result warn "$name" "missing $needle"
+  fi
+}
+
+check_mac_defaults(){
+  check_gsettings_equals org.gnome.desktop.wm.preferences button-layout "'close,minimize,maximize:'" mac-button-layout
+  check_gsettings_equals org.gnome.desktop.interface enable-hot-corners "false" mac-hot-corners
+  check_gsettings_equals org.gnome.desktop.interface clock-format "'12h'" mac-clock-format
+  check_gsettings_contains org.gnome.settings-daemon.plugins.media-keys custom-keybindings "custom1" mac-custom-files-keybinding
+  check_gsettings_contains org.gnome.settings-daemon.plugins.media-keys custom-keybindings "custom2" mac-custom-terminal-keybinding
+  check_gsettings_equals org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/ binding "'<Super>e'" mac-files-binding
+  check_gsettings_equals org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/ binding "'<Super>Return'" mac-terminal-binding
+}
+
 main(){
   parse_args "$@"
 
@@ -292,6 +334,7 @@ main(){
         record_result info gnome-hotkey "$hk"
       fi
 
+      check_mac_defaults
     else
       warn "gnome: detected but gsettings missing"
       record_result warn gsettings "missing on GNOME host"
