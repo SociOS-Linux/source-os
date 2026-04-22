@@ -35,6 +35,20 @@ in
       default = 7073;
       description = "Local port for the sourceos-shell derive/docd service.";
     };
+
+    searchProvider = {
+      mode = lib.mkOption {
+        type = lib.types.enum [ "linux-native" "launcher-bridge" "shell-native" ];
+        default = "launcher-bridge";
+        description = "Search routing mode during shell rollout.";
+      };
+
+      linuxFileProvider = lib.mkOption {
+        type = lib.types.enum [ "tracker3" "fd" "locate" ];
+        default = "tracker3";
+        description = "Linux-native file search provider used when scope=files.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -45,7 +59,20 @@ in
       routerPort=${toString cfg.routerPort}
       pdfSecurePort=${toString cfg.pdfSecurePort}
       docdPort=${toString cfg.docdPort}
+      searchProvider.mode=${cfg.searchProvider.mode}
+      searchProvider.linuxFileProvider=${cfg.searchProvider.linuxFileProvider}
     '';
+
+    environment.etc."sourceos-shell/search-provider.json".text = builtins.toJSON {
+      mode = cfg.searchProvider.mode;
+      linuxFileProvider = cfg.searchProvider.linuxFileProvider;
+      invariant = "no_redundant_file_search";
+      scopes = {
+        apps = "launcher";
+        files = "linux-native-only";
+        web = "browser-agent";
+      };
+    };
 
     systemd.services.sourceos-shell = {
       description = "SourceOS shell runtime scaffold";
