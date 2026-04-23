@@ -286,6 +286,24 @@ check_bin(){
   return 1
 }
 
+status_check_lampstand(){
+  local search_helper="$PROFILE_DIR/bin/sourceos-search.sh"
+
+  if [[ ! -f "$search_helper" ]]; then
+    WARNINGS+=("missing sourceos search helper: $search_helper")
+  fi
+
+  if check_bin lampstand; then
+    return 0
+  fi
+
+  if have python3 && python3 -c 'import lampstand.cli' >/dev/null 2>&1; then
+    return 0
+  fi
+
+  WARNINGS+=("lampstand backend unavailable")
+}
+
 status_collect(){
   REQUIRED_MISSING=()
   OPTIONAL_MISSING=()
@@ -310,6 +328,8 @@ status_collect(){
   if ! check_bin xclip; then
     OPTIONAL_MISSING+=("xclip")
   fi
+
+  status_check_lampstand
 
   if gnome_detect; then
     if ! check_bin gsettings; then
