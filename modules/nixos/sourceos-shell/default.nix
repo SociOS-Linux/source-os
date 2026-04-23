@@ -38,8 +38,8 @@ in
 
     searchProvider = {
       mode = lib.mkOption {
-        type = lib.types.enum [ "linux-native" "launcher-bridge" "shell-native" ];
-        default = "launcher-bridge";
+        type = lib.types.enum [ "linux-native" "command-bus" "shell-native" ];
+        default = "command-bus";
         description = "Search routing mode during shell rollout.";
       };
 
@@ -74,7 +74,7 @@ in
       };
       notes = [
         "Lampstand is the Linux-native file authority for scope=files."
-        "The launcher remains an action bus and must not perform a second file-search pass."
+        "The command bus remains a frontend and must not perform a second file-search pass."
       ];
     };
 
