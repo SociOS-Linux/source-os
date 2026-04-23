@@ -102,19 +102,19 @@
         canary-x86_64 = lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit self; };
-          modules = [ ./hosts/canary_x86_64/default.nix ];
+          modules = [ ./hosts/canary-x86_64/default.nix ];
         };
 
         stable-x86_64 = lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit self; };
-          modules = [ ./hosts/stable_x86_64/default.nix ];
+          modules = [ ./hosts/stable-x86_64/default.nix ];
         };
 
         exit-x86_64 = lib.nixosSystem {
           system = "x86_64-linux";
           specialArgs = { inherit self; };
-          modules = [ ./hosts/exit_x86_64/default.nix ];
+          modules = [ ./hosts/exit-x86_64/default.nix ];
         };
       };
 
@@ -130,22 +130,22 @@
 
           canary-x86_64-smoke =
             if system == "x86_64-linux"
-            then import ./tests/canary_x86_64-contract.nix { inherit pkgs; }
-            else pkgs.runCommand "canary_x86_64-smoke-skip" {} ''
+            then import ./tests/canary-x86_64-contract.nix { inherit pkgs; }
+            else pkgs.runCommand "canary-x86_64-smoke-skip" {} ''
               mkdir -p $out
             '';
 
           stable-x86_64-smoke =
             if system == "x86_64-linux"
-            then import ./tests/stable_x86_64-contract.nix { inherit pkgs; }
-            else pkgs.runCommand "stable_x86_64-smoke-skip" {} ''
+            then import ./tests/stable-x86_64-contract.nix { inherit pkgs; }
+            else pkgs.runCommand "stable-x86_64-smoke-skip" {} ''
               mkdir -p $out
             '';
 
           exit-x86_64-smoke =
             if system == "x86_64-linux"
-            then import ./tests/exit_x86_64-contract.nix { inherit pkgs; }
-            else pkgs.runCommand "exit_x86_64-smoke-skip" {} ''
+            then import ./tests/exit-x86_64-contract.nix { inherit pkgs; }
+            else pkgs.runCommand "exit-x86_64-smoke-skip" {} ''
               mkdir -p $out
             '';
 
