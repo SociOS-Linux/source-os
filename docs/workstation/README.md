@@ -33,6 +33,7 @@ Workflow file:
 - CLI-first developer experience with keyboard-first navigation.
 - GNOME baseline customization via GSettings and pinned extensions (no GNOME core forks).
 - Open-source launcher palette (Wayland-first): `sourceos palette` uses fuzzel (primary) with wofi/rofi fallbacks.
+- Lampstand-backed local search surface via `sourceos search`, with the launcher treated as an action bus rather than a second filesystem index.
 - Primary keyboard remap lane: `input-remapper` on Fedora/GNOME.
 - Compatibility remap lanes: `xremap` and `kinto` (explicit compatibility path, not default).
 - Touchpad gesture lane: `fusuma`.
@@ -52,6 +53,7 @@ Or via the installed helper:
 
   sourceos doctor
   sourceos status --json
+  sourceos search 'report OR invoice' --snippet
 
 ## Nix-first support
 
@@ -68,6 +70,7 @@ Notes:
 - Workstation v0 avoids non-open launchers.
 - Launcher install is best-effort via distro packages (Fedora: fuzzel) and does not silently enable third-party repos.
 - Kinto is treated as an explicit compatibility lane rather than the default Wayland-first path.
+- File search should resolve through Lampstand when available; the launcher must not run a redundant second file-search pass.
 
 ## Related docs
 
