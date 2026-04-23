@@ -78,9 +78,17 @@ in
       ];
     };
 
+    systemd.targets.sourceos-shell = {
+      description = "SourceOS shell service graph";
+      wants = [ "sourceos-shell.service" "sourceos-router.service" "sourceos-pdf-secure.service" "sourceos-docd.service" ];
+      after = [ "network-online.target" ];
+      wantedBy = [ "multi-user.target" ];
+    };
+
     systemd.services.sourceos-shell = {
       description = "SourceOS shell runtime scaffold";
       wantedBy = [ "multi-user.target" ];
+      partOf = [ "sourceos-shell.target" ];
       serviceConfig = {
         Type = "simple";
         ExecStart = "${pkgs.coreutils}/bin/echo sourceos-shell runtime placeholder root=${cfg.packageRoot} port=${toString cfg.shellPort}";
@@ -90,6 +98,7 @@ in
     systemd.services.sourceos-router = {
       description = "SourceOS shell router scaffold";
       wantedBy = [ "multi-user.target" ];
+      partOf = [ "sourceos-shell.target" ];
       serviceConfig = {
         Type = "simple";
         ExecStart = "${pkgs.coreutils}/bin/echo sourceos-router placeholder port=${toString cfg.routerPort}";
@@ -99,6 +108,7 @@ in
     systemd.services.sourceos-pdf-secure = {
       description = "SourceOS shell pdf-secure scaffold";
       wantedBy = [ "multi-user.target" ];
+      partOf = [ "sourceos-shell.target" ];
       serviceConfig = {
         Type = "simple";
         ExecStart = "${pkgs.coreutils}/bin/echo sourceos-pdf-secure placeholder port=${toString cfg.pdfSecurePort}";
@@ -108,6 +118,7 @@ in
     systemd.services.sourceos-docd = {
       description = "SourceOS shell docd scaffold";
       wantedBy = [ "multi-user.target" ];
+      partOf = [ "sourceos-shell.target" ];
       serviceConfig = {
         Type = "simple";
         ExecStart = "${pkgs.coreutils}/bin/echo sourceos-docd placeholder port=${toString cfg.docdPort}";
