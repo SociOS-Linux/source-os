@@ -218,6 +218,33 @@ check_fusuma_lane(){
   fi
 }
 
+check_lampstand_lane(){
+  local search_helper="$(cd "$(dirname "$0")" && pwd)/bin/sourceos-search.sh"
+
+  if [[ -f "$search_helper" ]]; then
+    info "ok: sourceos search helper"
+    record_result ok sourceos-search-helper "$search_helper"
+  else
+    warn "sourceos search helper missing: $search_helper"
+    record_result warn sourceos-search-helper "missing"
+  fi
+
+  if have lampstand; then
+    info "ok: lampstand"
+    record_result ok lampstand "binary present"
+    return
+  fi
+
+  if have python3 && python3 -c 'import lampstand.cli' >/dev/null 2>&1; then
+    info "ok: lampstand python module"
+    record_result ok lampstand "python module importable"
+    return
+  fi
+
+  warn "lampstand missing (search surface exists but backend is unavailable)"
+  record_result warn lampstand "missing backend"
+}
+
 main(){
   parse_args "$@"
 
@@ -268,6 +295,7 @@ main(){
   check rclone
   check mc
   check rsync
+  check_lampstand_lane
 
   if gnome_detect; then
     record_result info gnome "detected"
