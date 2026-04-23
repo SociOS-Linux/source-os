@@ -75,6 +75,16 @@ install_sourceos_cli(){
   fi
 }
 
+install_lampstand_backend(){
+  local script="$PROFILE_DIR/bin/install-lampstand.sh"
+  if [[ -x "$script" ]]; then
+    info "Installing Lampstand backend (best-effort)"
+    "$script" || warn "Lampstand install failed (non-fatal)"
+  else
+    warn "Lampstand installer not found: $script"
+  fi
+}
+
 patch_shell_rc_if_enabled(){
   if ! autopatch_enabled; then
     return 0
@@ -178,6 +188,7 @@ main(){
   install_user
   install_shell_spine
   install_sourceos_cli
+  install_lampstand_backend
   patch_shell_rc_if_enabled
   apply_gnome_baseline
   apply_gnome_extensions
