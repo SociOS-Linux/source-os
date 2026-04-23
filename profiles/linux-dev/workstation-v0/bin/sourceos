@@ -260,9 +260,17 @@ run_fix_helper(){
   exit "$rc"
 }
 
-run_fix_all(){ run_fix_helper all "$1" "$2" "$3" "$4"; }
-run_fix_shell(){ run_fix_helper shell "$1" "$2" "$3" "$4"; }
-run_fix_fish(){ run_fix_helper fish "$1" "$2" "$3" "$4"; }
+run_fix_all(){
+  run_fix_helper all "$1" "$2" "$3" "$4"
+}
+
+run_fix_shell(){
+  run_fix_helper shell "$1" "$2" "$3" "$4"
+}
+
+run_fix_fish(){
+  run_fix_helper fish "$1" "$2" "$3" "$4"
+}
 
 gnome_detect(){
   [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]] && return 0
@@ -270,7 +278,13 @@ gnome_detect(){
   return 1
 }
 
-check_bin(){ command -v "$1" >/dev/null 2>&1; }
+check_bin(){
+  local bin=$1
+  if have "$bin"; then
+    return 0
+  fi
+  return 1
+}
 
 status_check_lampstand(){
   local search_helper="$PROFILE_DIR/bin/sourceos-search.sh"
@@ -279,8 +293,13 @@ status_check_lampstand(){
     WARNINGS+=("missing sourceos search helper: $search_helper")
   fi
 
-  if check_bin lampstand; then return 0; fi
-  if have python3 && python3 -c 'import lampstand.cli' >/dev/null 2>&1; then return 0; fi
+  if check_bin lampstand; then
+    return 0
+  fi
+
+  if have python3 && python3 -c 'import lampstand.cli' >/dev/null 2>&1; then
+    return 0
+  fi
 
   WARNINGS+=("lampstand backend unavailable")
 }
@@ -301,19 +320,29 @@ status_collect(){
   )
 
   for b in "${required[@]}"; do
-    if ! check_bin "$b"; then REQUIRED_MISSING+=("$b"); fi
+    if ! check_bin "$b"; then
+      REQUIRED_MISSING+=("$b")
+    fi
   done
 
-  if ! check_bin xclip; then OPTIONAL_MISSING+=("xclip"); fi
+  if ! check_bin xclip; then
+    OPTIONAL_MISSING+=("xclip")
+  fi
 
   status_check_lampstand
 
   if gnome_detect; then
-    if ! check_bin gsettings; then WARNINGS+=("gsettings missing"); fi
+    if ! check_bin gsettings; then
+      WARNINGS+=("gsettings missing")
+    fi
 
     if check_bin gnome-extensions; then
-      if ! gnome-extensions list 2>/dev/null | grep -qx 'dash-to-dock@micxgx.gmail.com'; then WARNINGS+=("missing gnome extension: dash-to-dock@micxgx.gmail.com"); fi
-      if ! gnome-extensions list 2>/dev/null | grep -qx 'appindicatorsupport@rgcjonas.gmail.com'; then WARNINGS+=("missing gnome extension: appindicatorsupport@rgcjonas.gmail.com"); fi
+      if ! gnome-extensions list 2>/dev/null | grep -qx 'dash-to-dock@micxgx.gmail.com'; then
+        WARNINGS+=("missing gnome extension: dash-to-dock@micxgx.gmail.com")
+      fi
+      if ! gnome-extensions list 2>/dev/null | grep -qx 'appindicatorsupport@rgcjonas.gmail.com'; then
+        WARNINGS+=("missing gnome extension: appindicatorsupport@rgcjonas.gmail.com")
+      fi
     else
       WARNINGS+=("gnome-extensions missing")
     fi
@@ -324,9 +353,12 @@ status_json(){
   status_collect
 
   local ok=true
-  if (( ${#REQUIRED_MISSING[@]} > 0 )); then ok=false; fi
+  if (( ${#REQUIRED_MISSING[@]} > 0 )); then
+    ok=false
+  fi
 
   local profile="linux-dev/workstation-v0"
+
   local gnome=false
   if gnome_detect; then gnome=true; fi
 
@@ -336,21 +368,32 @@ status_json(){
   printf ',"gnome":%s' "$gnome"
 
   printf ',"required_missing":['
-  for ((i=0;i<${#REQUIRED_MISSING[@]};i++)); do [[ $i -gt 0 ]] && printf ','; printf '"%s"' "$(json_escape "${REQUIRED_MISSING[$i]}")"; done
+  for ((i=0;i<${#REQUIRED_MISSING[@]};i++)); do
+    [[ $i -gt 0 ]] && printf ','
+    printf '"%s"' "$(json_escape "${REQUIRED_MISSING[$i]}")"
+  done
   printf ']'
 
   printf ',"optional_missing":['
-  for ((i=0;i<${#OPTIONAL_MISSING[@]};i++)); do [[ $i -gt 0 ]] && printf ','; printf '"%s"' "$(json_escape "${OPTIONAL_MISSING[$i]}")"; done
+  for ((i=0;i<${#OPTIONAL_MISSING[@]};i++)); do
+    [[ $i -gt 0 ]] && printf ','
+    printf '"%s"' "$(json_escape "${OPTIONAL_MISSING[$i]}")"
+  done
   printf ']'
 
   printf ',"warnings":['
-  for ((i=0;i<${#WARNINGS[@]};i++)); do [[ $i -gt 0 ]] && printf ','; printf '"%s"' "$(json_escape "${WARNINGS[$i]}")"; done
+  for ((i=0;i<${#WARNINGS[@]};i++)); do
+    [[ $i -gt 0 ]] && printf ','
+    printf '"%s"' "$(json_escape "${WARNINGS[$i]}")"
+  done
   printf ']'
 
   printf '}'
   printf '\n'
 
-  if [[ "$ok" == "true" ]]; then return 0; fi
+  if [[ "$ok" == "true" ]]; then
+    return 0
+  fi
   return 2
 }
 
@@ -365,11 +408,15 @@ status_human(){
     return 2
   fi
 
-  if (( ${#OPTIONAL_MISSING[@]} > 0 )); then warn "missing optional: ${OPTIONAL_MISSING[*]}"; fi
+  if (( ${#OPTIONAL_MISSING[@]} > 0 )); then
+    warn "missing optional: ${OPTIONAL_MISSING[*]}"
+  fi
 
   if (( ${#WARNINGS[@]} > 0 )); then
     warn "warnings:"
-    for w in "${WARNINGS[@]}"; do warn "- $w"; done
+    for w in "${WARNINGS[@]}"; do
+      warn "- $w"
+    done
   fi
 
   return 0
@@ -394,7 +441,9 @@ status_write(){
   local path=$1
   [[ -n "$path" ]] || { err "--write requires a path"; exit 2; }
 
-  mkdir -p "$(dirname "$path")"
+  local dir
+  dir="$(dirname "$path")"
+  mkdir -p "$dir"
 
   set +e
   status_json >"$path" 2>/dev/null
@@ -406,6 +455,7 @@ status_write(){
 }
 
 palette_menu(){
+  # Print menu entries as: label<TAB>command
   cat <<'EOF'
 Palette: Audit doctor (open JSON report)	sourceos doctor --json --open
 Palette: Audit fix all (open report)	sourceos fix all dry-run --open
@@ -434,10 +484,24 @@ EOF
 }
 
 palette_select(){
-  if have fuzzel; then palette_menu | fuzzel --dmenu --prompt 'sourceos> ' | awk -F '\t' '{print $2}'; return; fi
-  if have wofi; then palette_menu | wofi --dmenu --prompt 'sourceos> ' | awk -F '\t' '{print $2}'; return; fi
-  if have rofi; then palette_menu | rofi -dmenu -p 'sourceos> ' | awk -F '\t' '{print $2}'; return; fi
-  if have fzf; then palette_menu | fzf --with-nth=1 --delimiter=$'\t' --prompt='sourceos> ' | awk -F '\t' '{print $2}'; return; fi
+  # Prefer Wayland-first fuzzel, then wofi, then rofi, then terminal fzf.
+  if have fuzzel; then
+    palette_menu | fuzzel --dmenu --prompt 'sourceos> ' | awk -F '\t' '{print $2}'
+    return
+  fi
+  if have wofi; then
+    palette_menu | wofi --dmenu --prompt 'sourceos> ' | awk -F '\t' '{print $2}'
+    return
+  fi
+  if have rofi; then
+    palette_menu | rofi -dmenu -p 'sourceos> ' | awk -F '\t' '{print $2}'
+    return
+  fi
+  if have fzf; then
+    palette_menu | fzf --with-nth=1 --delimiter=$'\t' --prompt='sourceos> ' | awk -F '\t' '{print $2}'
+    return
+  fi
+
   err "no launcher found (fuzzel/wofi/rofi/fzf)"
   return 2
 }
@@ -452,43 +516,102 @@ run_palette(){
 main(){
   local cmd=${1:-}
   case "$cmd" in
-    -h|--help|help|"") usage ;;
-    palette) run_palette ;;
+    -h|--help|help|"")
+      usage
+      ;;
+
+    palette)
+      run_palette
+      ;;
+
     fix)
       shift || true
       case "${1:-}" in
-        all) shift || true; parse_fix_args "$@"; run_fix_all "$FIX_MODE" "$FIX_JSON" "$FIX_OPEN" "$FIX_WRITE_PATH" ;;
-        shell) shift || true; parse_fix_args "$@"; run_fix_shell "$FIX_MODE" "$FIX_JSON" "$FIX_OPEN" "$FIX_WRITE_PATH" ;;
-        fish) shift || true; parse_fix_args "$@"; run_fix_fish "$FIX_MODE" "$FIX_JSON" "$FIX_OPEN" "$FIX_WRITE_PATH" ;;
-        *) err "unknown fix target: ${1:-}"; usage; exit 2 ;;
+        all)
+          shift || true
+          parse_fix_args "$@"
+          run_fix_all "$FIX_MODE" "$FIX_JSON" "$FIX_OPEN" "$FIX_WRITE_PATH"
+          ;;
+        shell)
+          shift || true
+          parse_fix_args "$@"
+          run_fix_shell "$FIX_MODE" "$FIX_JSON" "$FIX_OPEN" "$FIX_WRITE_PATH"
+          ;;
+        fish)
+          shift || true
+          parse_fix_args "$@"
+          run_fix_fish "$FIX_MODE" "$FIX_JSON" "$FIX_OPEN" "$FIX_WRITE_PATH"
+          ;;
+        *)
+          err "unknown fix target: ${1:-}"
+          usage
+          exit 2
+          ;;
       esac
       ;;
-    doctor) shift || true; parse_doctor_args "$@"; run_doctor ;;
+
+    doctor)
+      shift || true
+      parse_doctor_args "$@"
+      run_doctor
+      ;;
+
     status)
       shift || true
       case "${1:-}" in
-        --json) shift || true; status_json ;;
-        --open) shift || true; status_open ;;
-        --write) shift || true; status_write "${1:-}" ;;
-        "") status_human ;;
-        *) err "unknown status flag: ${1:-}"; usage; exit 2 ;;
+        --json)
+          shift || true
+          status_json
+          ;;
+        --open)
+          shift || true
+          status_open
+          ;;
+        --write)
+          shift || true
+          status_write "${1:-}"
+          ;;
+        "")
+          status_human
+          ;;
+        *)
+          err "unknown status flag: ${1:-}"
+          usage
+          exit 2
+          ;;
       esac
       ;;
+
     search)
       shift || true
       local search_helper="$PROFILE_DIR/bin/sourceos-search.sh"
       [[ -f "$search_helper" ]] || { err "search helper missing: $search_helper"; exit 2; }
       exec bash "$search_helper" "$@"
       ;;
+
     profile)
       shift || true
-      case "${1:-}" in
-        apply) run_apply ;;
-        path) profile_path ;;
-        *) err "unknown profile subcommand: ${1:-}"; usage; exit 2 ;;
+      local sub=${1:-}
+      case "$sub" in
+        apply)
+          run_apply
+          ;;
+        path)
+          profile_path
+          ;;
+        *)
+          err "unknown profile subcommand: $sub"
+          usage
+          exit 2
+          ;;
       esac
       ;;
-    *) err "unknown command: $cmd"; usage; exit 2 ;;
+
+    *)
+      err "unknown command: $cmd"
+      usage
+      exit 2
+      ;;
   esac
 }
 
