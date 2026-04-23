@@ -49,6 +49,7 @@ Usage:
   sourceos fix fish [apply|dry-run|revert] [--json] [--open|--write <path>]
   sourceos doctor [--json|--open|--write <path>]
   sourceos status [--json|--open|--write <path>]
+  sourceos search [--limit N] [--snippet] [--prompt] [--open|--write <path>] [query...]
   sourceos profile apply
   sourceos profile path
 
@@ -451,6 +452,7 @@ Palette: Fix fish config (apply)	sourceos fix fish apply
 Palette: Revert fish config patch	sourceos fix fish revert
 Status (open report)	sourceos status --open
 Doctor (open text report)	sourceos doctor --open
+Search files (Lampstand)	sourceos search --prompt --snippet --open
 Apply profile	sourceos profile apply
 Open sesh	sesh
 Open tmux	tmux
@@ -558,6 +560,13 @@ main(){
           exit 2
           ;;
       esac
+      ;;
+
+    search)
+      shift || true
+      local search_helper="$PROFILE_DIR/bin/sourceos-search.sh"
+      [[ -x "$search_helper" ]] || { err "search helper missing: $search_helper"; exit 2; }
+      exec "$search_helper" "$@"
       ;;
 
     profile)
