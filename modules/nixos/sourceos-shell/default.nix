@@ -44,8 +44,8 @@ in
       };
 
       linuxFileProvider = lib.mkOption {
-        type = lib.types.enum [ "tracker3" "fd" "locate" ];
-        default = "tracker3";
+        type = lib.types.enum [ "lampstand" "fd" "locate" ];
+        default = "lampstand";
         description = "Linux-native file search provider used when scope=files.";
       };
     };
@@ -72,6 +72,10 @@ in
         files = "linux-native-only";
         web = "browser-agent";
       };
+      notes = [
+        "Lampstand is the Linux-native file authority for scope=files."
+        "The launcher remains an action bus and must not perform a second file-search pass."
+      ];
     };
 
     systemd.services.sourceos-shell = {
