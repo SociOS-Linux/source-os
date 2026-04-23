@@ -1,4 +1,4 @@
-{ python3Packages, lampstand-src }:
+{ lib, python3Packages, lampstand-src }:
 
 python3Packages.buildPythonApplication {
   pname = "lampstand";
@@ -20,7 +20,7 @@ python3Packages.buildPythonApplication {
 
   meta = {
     description = "SourceOS desktop file indexing and search service";
-    license = python3Packages.lib.licenses.mit;
+    license = lib.licenses.mit;
     mainProgram = "lampstand";
   };
 }
