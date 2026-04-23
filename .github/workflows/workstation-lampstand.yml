@@ -1,0 +1,61 @@
+name: workstation-lampstand
+
+on:
+  pull_request:
+    paths:
+      - 'profiles/linux-dev/workstation-v0/bin/install-lampstand.sh'
+      - 'profiles/linux-dev/workstation-v0/bin/sourceos-search.sh'
+      - 'profiles/linux-dev/workstation-v0/manifest.yaml'
+      - '.github/workflows/workstation-lampstand.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'profiles/linux-dev/workstation-v0/bin/install-lampstand.sh'
+      - 'profiles/linux-dev/workstation-v0/bin/sourceos-search.sh'
+      - 'profiles/linux-dev/workstation-v0/manifest.yaml'
+      - '.github/workflows/workstation-lampstand.yml'
+
+jobs:
+  lampstand-installer-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Syntax check installer
+        run: |
+          set -euo pipefail
+          bash -n profiles/linux-dev/workstation-v0/bin/install-lampstand.sh
+          bash -n profiles/linux-dev/workstation-v0/bin/sourceos-search.sh
+
+      - name: Smoke: installer writes user service with stub pipx
+        run: |
+          set -euo pipefail
+          tmp_home=$(mktemp -d)
+          tmp_bin=$(mktemp -d)
+          tmp_src=$(mktemp -d)
+          printf '[project]\nname = "lampstand"\n' > "$tmp_src/pyproject.toml"
+
+          cat > "$tmp_bin/pipx" <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          test "${1:-}" = install
+          mkdir -p "$HOME/.local/bin"
+          cat > "$HOME/.local/bin/lampstandd" <<'EOS'
+          #!/usr/bin/env bash
+          exit 0
+          EOS
+          chmod +x "$HOME/.local/bin/lampstandd"
+          EOF
+          chmod +x "$tmp_bin/pipx"
+
+          HOME="$tmp_home" \
+          XDG_CONFIG_HOME="$tmp_home/.config" \
+          SOURCEOS_LAMPSTAND_SRC="$tmp_src" \
+          PATH="$tmp_bin:$PATH" \
+            bash profiles/linux-dev/workstation-v0/bin/install-lampstand.sh
+
+          svc="$tmp_home/.config/systemd/user/sourceos-lampstand.service"
+          test -f "$svc"
+          grep -F 'lampstandd --root %h --rpc unixjson' "$svc" >/dev/null
