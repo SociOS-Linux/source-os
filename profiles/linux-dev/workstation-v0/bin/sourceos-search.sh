@@ -120,4 +120,4 @@ if [[ "$SEARCH_OPEN" == "1" || -n "$SEARCH_WRITE_PATH" ]]; then
   exit 0
 fi
 
-exec run_lampstand "${args[@]}"
+run_lampstand "${args[@]}"
