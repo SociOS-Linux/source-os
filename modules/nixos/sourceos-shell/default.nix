@@ -73,5 +73,14 @@ in
         ExecStart = "${pkgs.coreutils}/bin/echo sourceos-pdf-secure placeholder port=${toString cfg.pdfSecurePort}";
       };
     };
+
+    systemd.services.sourceos-docd = {
+      description = "SourceOS shell docd scaffold";
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${pkgs.coreutils}/bin/echo sourceos-docd placeholder port=${toString cfg.docdPort}";
+      };
+    };
   };
 }

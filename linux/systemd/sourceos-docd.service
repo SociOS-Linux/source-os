@@ -1,0 +1,13 @@
+[Unit]
+Description=SourceOS docd derive service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/sourceos-shell/bin/sourceos-docd
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target
