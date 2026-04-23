@@ -21,6 +21,7 @@ require_file "configs/mime/sourceos-office-mimeapps.list"
 require_file "build/office-suite/templates/sovereign/sourceos-default-writer.fodt"
 require_file "build/office-suite/scripts/office_cloud_handoff.sh"
 require_file "build/office-suite/scripts/office_open.sh"
+require_file "build/office-suite/scripts/office_open_smoke.sh"
 
 if [[ $FAIL -ne 0 ]]; then
   echo "office suite profile verification failed" >&2
