@@ -65,6 +65,8 @@
             else pkgs.runCommand "stable-x86_64-smoke-skip" {} ''
               mkdir -p $out
             '';
+
+          sourceos-shell-module-contract = import ./tests/sourceos-shell-module-contract.nix { inherit pkgs; };
         });
 
       sourceos = {
