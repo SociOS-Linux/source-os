@@ -62,6 +62,7 @@ spec:
         - kondo
         - glow
         - hyperfine
+        - pipx
         - rclone
         - minio-mc
         - rsync
