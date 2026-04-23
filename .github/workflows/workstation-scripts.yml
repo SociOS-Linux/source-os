@@ -217,6 +217,24 @@ miss=[k for k in req if k not in j];
 assert not miss, "missing keys: "+",".join(miss);
 print("ok")' <<<"$out"
 
+      - name: Smoke: sourceos search writes report via stubbed lampstand
+        run: |
+          set -euo pipefail
+          f='profiles/linux-dev/workstation-v0/bin/sourceos'
+          tmpbin=$(mktemp -d)
+          outf=$(mktemp)
+
+          cat > "$tmpbin/lampstand" <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          printf '/tmp/demo.txt\t(score=1.000)\n'
+          EOF
+          chmod +x "$tmpbin/lampstand"
+
+          PATH="$tmpbin:$PATH" SOURCEOS_PROFILE_DIR=profiles/linux-dev/workstation-v0 bash "$f" search --write "$outf" 'report OR invoice' >/dev/null
+          test -s "$outf"
+          grep -F '/tmp/demo.txt' "$outf" >/dev/null
+
       - name: Drift guard: forbid legacy launcher strings
         run: |
           set -euo pipefail
