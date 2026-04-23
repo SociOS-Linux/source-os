@@ -36,6 +36,26 @@ in
       description = "Local port for the sourceos-shell derive/docd service.";
     };
 
+    keyboard = {
+      mode = lib.mkOption {
+        type = lib.types.enum [ "linux-default" "bridge" "shell-native" ];
+        default = "bridge";
+        description = "Keyboard equivalence mode during rollout.";
+      };
+
+      platformModel = lib.mkOption {
+        type = lib.types.enum [ "mac-like" "linux-default" ];
+        default = "mac-like";
+        description = "High-level shortcut model expected by the shell on Linux hosts.";
+      };
+
+      terminalModel = lib.mkOption {
+        type = lib.types.enum [ "terminal-like" "linux-default" ];
+        default = "terminal-like";
+        description = "Terminal-specific shortcut model used during rollout.";
+      };
+    };
+
     searchProvider = {
       mode = lib.mkOption {
         type = lib.types.enum [ "linux-native" "launcher-bridge" "shell-native" ];
@@ -59,9 +79,19 @@ in
       routerPort=${toString cfg.routerPort}
       pdfSecurePort=${toString cfg.pdfSecurePort}
       docdPort=${toString cfg.docdPort}
+      keyboard.mode=${cfg.keyboard.mode}
+      keyboard.platformModel=${cfg.keyboard.platformModel}
+      keyboard.terminalModel=${cfg.keyboard.terminalModel}
       searchProvider.mode=${cfg.searchProvider.mode}
       searchProvider.linuxFileProvider=${cfg.searchProvider.linuxFileProvider}
     '';
+
+    environment.etc."sourceos-shell/keyboard-equivalence.json".text = builtins.toJSON {
+      mode = cfg.keyboard.mode;
+      platformModel = cfg.keyboard.platformModel;
+      terminalModel = cfg.keyboard.terminalModel;
+      invariant = "gui_terminal_split_explicit";
+    };
 
     environment.etc."sourceos-shell/search-provider.json".text = builtins.toJSON {
       mode = cfg.searchProvider.mode;
