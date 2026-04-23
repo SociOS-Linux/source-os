@@ -565,8 +565,8 @@ main(){
     search)
       shift || true
       local search_helper="$PROFILE_DIR/bin/sourceos-search.sh"
-      [[ -x "$search_helper" ]] || { err "search helper missing: $search_helper"; exit 2; }
-      exec "$search_helper" "$@"
+      [[ -f "$search_helper" ]] || { err "search helper missing: $search_helper"; exit 2; }
+      exec bash "$search_helper" "$@"
       ;;
 
     profile)
