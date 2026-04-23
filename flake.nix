@@ -68,6 +68,7 @@
 
           sourceos-shell-module-contract = import ./tests/sourceos-shell-module-contract.nix { inherit pkgs; };
           sourceos-shell-service-graph-contract = import ./tests/sourceos-shell-service-graph-contract.nix { inherit pkgs; };
+          sourceos-shell-keyboard-module-contract = import ./tests/sourceos-shell-keyboard-module-contract.nix { inherit pkgs; };
         });
 
       sourceos = {
