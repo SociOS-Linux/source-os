@@ -67,6 +67,7 @@
             '';
 
           sourceos-shell-module-contract = import ./tests/sourceos-shell-module-contract.nix { inherit pkgs; };
+          sourceos-shell-search-provider-contract = import ./tests/sourceos-shell-search-provider-contract.nix { inherit pkgs; };
         });
 
       sourceos = {
