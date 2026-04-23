@@ -21,12 +21,18 @@ Workstation scripts are guarded by the `workstation-scripts` GitHub Actions work
 - bash -n
 - a small `sourceos status --json` smoke parse
 
+The Lampstand provisioning/search lane is guarded by the `workstation-lampstand` workflow:
+- installer syntax checks
+- `sourceos-search.sh` syntax checks
+- stubbed `pipx` smoke proving the installer writes the user service
+
 It triggers on PRs and main pushes touching:
 - `profiles/linux-dev/workstation-v0/**`
 - `docs/workstation/**`
 
-Workflow file:
+Workflow files:
 - `.github/workflows/workstation-scripts.yml`
+- `.github/workflows/workstation-lampstand.yml`
 
 ## Workstation v0 goals
 
@@ -44,6 +50,16 @@ Workflow file:
 From the repo:
 
   ./profiles/linux-dev/workstation-v0/install.sh
+
+The profile installer provisions Lampstand best-effort through:
+
+  ./profiles/linux-dev/workstation-v0/bin/install-lampstand.sh
+
+Lampstand install behavior:
+- `pipx` is the user-space installer.
+- local checkout is preferred from `$SOURCEOS_LAMPSTAND_SRC` or `~/dev/lampstand` when present.
+- otherwise the installer falls back to `git+https://github.com/SocioProphet/lampstand.git`.
+- when `lampstandd` is available, the installer writes `sourceos-lampstand.service` under the user systemd directory.
 
 ## Validate
 
@@ -71,6 +87,7 @@ Notes:
 - Launcher install is best-effort via distro packages (Fedora: fuzzel) and does not silently enable third-party repos.
 - Kinto is treated as an explicit compatibility lane rather than the default Wayland-first path.
 - File search should resolve through Lampstand when available; the launcher must not run a redundant second file-search pass.
+- Lampstand is installed in user space and exposed through a user service, not as a mandatory host-system package.
 
 ## Related docs
 
