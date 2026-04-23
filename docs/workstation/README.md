@@ -77,7 +77,12 @@ This repository is Nix-native. A dev shell is provided:
 
   nix develop .#workstation-v0
 
+Lampstand is also exposed as a Nix package:
+
+  nix build .#lampstand
+
 Notes:
+- The workstation devShell includes the repo-local Lampstand package in addition to best-effort nixpkgs CLI tools.
 - The workstation devShell is best-effort; missing nixpkgs attrs will be reported on entry.
 - The profile installers still support non-Nix systems using dnf/rpm-ostree and brew where applicable.
 
