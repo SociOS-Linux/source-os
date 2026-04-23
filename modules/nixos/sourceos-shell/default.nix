@@ -35,6 +35,20 @@ in
       default = 7073;
       description = "Local port for the sourceos-shell derive/docd service.";
     };
+
+    searchProvider = {
+      mode = lib.mkOption {
+        type = lib.types.enum [ "linux-native" "command-bus" "shell-native" ];
+        default = "command-bus";
+        description = "Search routing mode during shell rollout.";
+      };
+
+      linuxFileProvider = lib.mkOption {
+        type = lib.types.enum [ "lampstand" "fd" "locate" ];
+        default = "lampstand";
+        description = "Linux-native file search provider used when scope=files.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -45,7 +59,24 @@ in
       routerPort=${toString cfg.routerPort}
       pdfSecurePort=${toString cfg.pdfSecurePort}
       docdPort=${toString cfg.docdPort}
+      searchProvider.mode=${cfg.searchProvider.mode}
+      searchProvider.linuxFileProvider=${cfg.searchProvider.linuxFileProvider}
     '';
+
+    environment.etc."sourceos-shell/search-provider.json".text = builtins.toJSON {
+      mode = cfg.searchProvider.mode;
+      linuxFileProvider = cfg.searchProvider.linuxFileProvider;
+      invariant = "no_redundant_file_search";
+      scopes = {
+        apps = "launcher";
+        files = "linux-native-only";
+        web = "browser-agent";
+      };
+      notes = [
+        "Lampstand is the Linux-native file authority for scope=files."
+        "The command bus remains a frontend and must not perform a second file-search pass."
+      ];
+    };
 
     systemd.services.sourceos-shell = {
       description = "SourceOS shell runtime scaffold";
