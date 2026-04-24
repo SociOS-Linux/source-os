@@ -133,6 +133,26 @@ apply_gnome_extensions(){
   fi
 }
 
+apply_gnome_appearance(){
+  local script="$PROFILE_DIR/gnome/appearance-apply.sh"
+  if [[ -x "$script" ]]; then
+    info "Applying GNOME appearance defaults (best-effort)"
+    "$script" || warn "GNOME appearance defaults failed (non-fatal)"
+  else
+    warn "GNOME appearance script not found: $script"
+  fi
+}
+
+apply_files_sidebar(){
+  local script="$PROFILE_DIR/gnome/files-sidebar.sh"
+  if [[ -x "$script" ]]; then
+    info "Applying Files sidebar defaults (best-effort)"
+    "$script" || warn "Files sidebar defaults failed (non-fatal)"
+  else
+    warn "Files sidebar script not found: $script"
+  fi
+}
+
 apply_input_install(){
   local script="$PROFILE_DIR/gnome/input-install.sh"
   if [[ -x "$script" ]]; then
@@ -203,6 +223,8 @@ main(){
   patch_shell_rc_if_enabled
   apply_gnome_baseline
   apply_gnome_extensions
+  apply_gnome_appearance
+  apply_files_sidebar
   apply_input_install
   apply_fusuma_install
   apply_fusuma_config
