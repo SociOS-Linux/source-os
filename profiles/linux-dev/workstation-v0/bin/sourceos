@@ -49,6 +49,7 @@ Usage:
   sourceos fix fish [apply|dry-run|revert] [--json] [--open|--write <path>]
   sourceos doctor [--json|--open|--write <path>]
   sourceos status [--json|--open|--write <path>]
+  sourceos search [health|stats|index] [options]
   sourceos search [--limit N] [--snippet] [--prompt] [--open|--write <path>] [query...]
   sourceos profile apply
   sourceos profile path
@@ -473,6 +474,9 @@ Palette: Revert fish config patch	sourceos fix fish revert
 Status (open report)	sourceos status --open
 Doctor (open text report)	sourceos doctor --open
 Search files (Lampstand)	sourceos search --prompt --snippet --open
+Lampstand health (open report)	sourceos search health --open
+Lampstand stats (open report)	sourceos search stats --open
+Lampstand index home	sourceos search index --root "$HOME"
 Apply profile	sourceos profile apply
 Open sesh	sesh
 Open tmux	tmux

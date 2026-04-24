@@ -26,12 +26,46 @@ run_lampstand(){
   return 127
 }
 
+usage(){
+  cat <<'EOF'
+Usage:
+  sourceos-search.sh [--limit N] [--snippet] [--prompt] [--open|--write <path>] [query...]
+  sourceos-search.sh health [--open|--write <path>]
+  sourceos-search.sh stats [--open|--write <path>]
+  sourceos-search.sh index [--root <path>]...
+EOF
+}
+
+write_or_print(){
+  local out=$1
+  local default_name=$2
+  if [[ "$SEARCH_OPEN" == "1" || -n "$SEARCH_WRITE_PATH" ]]; then
+    local path="$SEARCH_WRITE_PATH"
+    if [[ -z "$path" ]]; then mkdir -p "$(cache_dir)"; path="$(cache_dir)/$default_name"; fi
+    mkdir -p "$(dirname "$path")"
+    printf '%s\n' "$out" > "$path"
+    info "wrote: $path"
+    [[ "$SEARCH_OPEN" == "1" ]] && open_file "$path"
+    return 0
+  fi
+  printf '%s\n' "$out"
+}
+
 SEARCH_LIMIT=20
 SEARCH_SNIPPET=0
 SEARCH_PROMPT=0
 SEARCH_OPEN=0
 SEARCH_WRITE_PATH=""
 QUERY_PARTS=()
+LAMPSTAND_ROOTS=()
+MODE="query"
+
+case "${1:-}" in
+  health|stats|index)
+    MODE="$1"
+    shift
+    ;;
+esac
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -40,14 +74,33 @@ while [[ $# -gt 0 ]]; do
     --prompt) SEARCH_PROMPT=1; shift ;;
     --open) SEARCH_OPEN=1; shift ;;
     --write) shift; [[ $# -gt 0 ]] || { err "--write requires a path"; exit 2; }; SEARCH_WRITE_PATH="$1"; shift ;;
-    -h|--help)
-      cat <<'EOF'
-Usage: sourceos-search.sh [--limit N] [--snippet] [--prompt] [--open|--write <path>] [query...]
-EOF
-      exit 0 ;;
+    --root) shift; [[ $# -gt 0 ]] || { err "--root requires a path"; exit 2; }; LAMPSTAND_ROOTS+=("$1"); shift ;;
+    -h|--help) usage; exit 0 ;;
     *) QUERY_PARTS+=("$1"); shift ;;
   esac
 done
+
+case "$MODE" in
+  health)
+    set +e
+    out="$(run_lampstand health 2>&1)"
+    rc=$?
+    set -e
+    write_or_print "$out" lampstand-health.json
+    exit "$rc"
+    ;;
+  stats)
+    out="$(run_lampstand stats)"
+    write_or_print "$out" lampstand-stats.json
+    exit 0
+    ;;
+  index)
+    args=(index)
+    for root in "${LAMPSTAND_ROOTS[@]}"; do args+=(--root "$root"); done
+    run_lampstand "${args[@]}"
+    exit $?
+    ;;
+esac
 
 if [[ ${#QUERY_PARTS[@]} -eq 0 && "$SEARCH_PROMPT" == "1" ]]; then
   if have fuzzel; then q="$(printf '\n' | fuzzel --dmenu --prompt 'search> ' || true)"
@@ -66,13 +119,8 @@ args=(query "$query" --limit "$SEARCH_LIMIT")
 [[ "$SEARCH_SNIPPET" == "1" ]] && args+=(--snippet)
 
 if [[ "$SEARCH_OPEN" == "1" || -n "$SEARCH_WRITE_PATH" ]]; then
-  path="$SEARCH_WRITE_PATH"
-  if [[ -z "$path" ]]; then mkdir -p "$(cache_dir)"; path="$(cache_dir)/search.txt"; fi
   out="$(run_lampstand "${args[@]}")"
-  mkdir -p "$(dirname "$path")"
-  printf '%s\n' "$out" > "$path"
-  info "wrote: $path"
-  [[ "$SEARCH_OPEN" == "1" ]] && open_file "$path"
+  write_or_print "$out" search.txt
   exit 0
 fi
 
