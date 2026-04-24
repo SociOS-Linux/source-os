@@ -14,6 +14,9 @@ mkdir -p "$HOME"
 
 DESKTOP_FILE="$XDG_DATA_HOME/applications/sourceos-office.desktop"
 BIN_FILE="$HOME/.local/bin/sourceos-office-open"
+CLOUD_FILE="$HOME/.local/bin/office_cloud_handoff.sh"
+SEARCH_FILE="$HOME/.local/bin/office_search_handoff.sh"
+SEARCH_OPEN_FILE="$HOME/.local/bin/office_search_open.sh"
 MIME_FILE="$XDG_CONFIG_HOME/mimeapps.list"
 
 [[ -f "$DESKTOP_FILE" ]] || {
@@ -23,6 +26,21 @@ MIME_FILE="$XDG_CONFIG_HOME/mimeapps.list"
 
 [[ -x "$BIN_FILE" ]] || {
   echo "desktop entry install smoke failed: missing launcher helper" >&2
+  exit 1
+}
+
+[[ -x "$CLOUD_FILE" ]] || {
+  echo "desktop entry install smoke failed: missing cloud handoff helper" >&2
+  exit 1
+}
+
+[[ -x "$SEARCH_FILE" ]] || {
+  echo "desktop entry install smoke failed: missing search handoff helper" >&2
+  exit 1
+}
+
+[[ -x "$SEARCH_OPEN_FILE" ]] || {
+  echo "desktop entry install smoke failed: missing search open helper" >&2
   exit 1
 }
 
