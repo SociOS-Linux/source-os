@@ -24,7 +24,9 @@ Workstation scripts are guarded by the `workstation-scripts` GitHub Actions work
 The Lampstand provisioning/search lane is guarded by the `workstation-lampstand` workflow:
 - installer syntax checks
 - `sourceos-search.sh` syntax checks
-- stubbed `pipx` smoke proving the installer writes the user service
+- stubbed `pipx` smoke proving the installer writes the user unit
+- stubbed Lampstand smoke for query, health, stats, and index commands
+- stubbed unit smoke for status, restart, enable, and logs commands
 
 It triggers on PRs and main pushes touching:
 - `profiles/linux-dev/workstation-v0/**`
@@ -71,6 +73,22 @@ Or via the installed helper:
   sourceos doctor
   sourceos status --json
   sourceos search 'report OR invoice' --snippet
+
+## Lampstand runtime commands
+
+Search and runtime inspection are exposed through the same workstation helper so the launcher remains an action bus and Lampstand remains the file-search authority:
+
+  sourceos search 'report OR invoice' --snippet
+  sourceos search health --open
+  sourceos search stats --open
+  sourceos search index --root "$HOME"
+
+The helper also exposes local unit inspection and log retrieval:
+
+  sourceos search service status --open
+  sourceos search service restart
+  sourceos search service enable
+  sourceos search service logs --open
 
 ## Nix-first support
 
