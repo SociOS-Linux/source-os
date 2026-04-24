@@ -336,14 +336,67 @@ check_gsettings_contains(){
   fi
 }
 
+check_mac_polish_tools(){
+  local screenshot_helper="$(cd "$(dirname "$0")" && pwd)/bin/mac-screenshot.sh"
+
+  if [[ -f "$screenshot_helper" ]]; then
+    info "ok: mac screenshot helper"
+    record_result ok mac-screenshot-helper "$screenshot_helper"
+  else
+    warn "mac screenshot helper missing: $screenshot_helper"
+    record_result warn mac-screenshot-helper "missing"
+  fi
+
+  if have mac-screenshot.sh; then
+    info "ok: mac-screenshot.sh wrapper"
+    record_result ok mac-screenshot-wrapper "present"
+  else
+    warn "mac-screenshot.sh wrapper missing from PATH"
+    record_result warn mac-screenshot-wrapper "missing from PATH"
+  fi
+
+  if have gnome-screenshot; then
+    info "ok: gnome-screenshot"
+    record_result ok gnome-screenshot "present"
+  else
+    warn "gnome-screenshot missing"
+    record_result warn gnome-screenshot "missing"
+  fi
+
+  if have sushi; then
+    info "ok: sushi Quick Look previewer"
+    record_result ok sushi "present"
+  else
+    warn "sushi Quick Look previewer missing"
+    record_result warn sushi "missing"
+  fi
+
+  local dir="${SOURCEOS_SCREENSHOT_DIR:-$HOME/Pictures/Screenshots}"
+  if [[ -d "$dir" ]]; then
+    info "ok: screenshot directory"
+    record_result ok screenshot-dir "$dir"
+  else
+    warn "screenshot directory missing: $dir"
+    record_result warn screenshot-dir "missing"
+  fi
+}
+
 check_mac_defaults(){
   check_gsettings_equals org.gnome.desktop.wm.preferences button-layout "'close,minimize,maximize:'" mac-button-layout
   check_gsettings_equals org.gnome.desktop.interface enable-hot-corners "false" mac-hot-corners
   check_gsettings_equals org.gnome.desktop.interface clock-format "'12h'" mac-clock-format
   check_gsettings_contains org.gnome.settings-daemon.plugins.media-keys custom-keybindings "custom1" mac-custom-files-keybinding
   check_gsettings_contains org.gnome.settings-daemon.plugins.media-keys custom-keybindings "custom2" mac-custom-terminal-keybinding
+  check_gsettings_contains org.gnome.settings-daemon.plugins.media-keys custom-keybindings "custom3" mac-screenshot-screen-keybinding
+  check_gsettings_contains org.gnome.settings-daemon.plugins.media-keys custom-keybindings "custom4" mac-screenshot-area-keybinding
+  check_gsettings_contains org.gnome.settings-daemon.plugins.media-keys custom-keybindings "custom5" mac-screenshot-ui-keybinding
+  check_gsettings_contains org.gnome.settings-daemon.plugins.media-keys custom-keybindings "custom6" mac-screenshot-folder-keybinding
   check_gsettings_equals org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/ binding "'<Super>e'" mac-files-binding
   check_gsettings_equals org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/ binding "'<Super>Return'" mac-terminal-binding
+  check_gsettings_equals org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/ binding "'<Super><Shift>3'" mac-screenshot-screen-binding
+  check_gsettings_equals org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/ binding "'<Super><Shift>4'" mac-screenshot-area-binding
+  check_gsettings_equals org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/ binding "'<Super><Shift>5'" mac-screenshot-ui-binding
+  check_gsettings_equals org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/ binding "'<Super><Shift>6'" mac-screenshot-folder-binding
 }
 
 main(){
@@ -398,6 +451,7 @@ main(){
   check rsync
   check_lampstand_lane
   check_lampstand_unit
+  check_mac_polish_tools
 
   if gnome_detect; then
     record_result info gnome "detected"
