@@ -1,0 +1,59 @@
+name: workstation-keyboard-policy
+
+on:
+  pull_request:
+    paths:
+      - 'profiles/linux-dev/workstation-v0/bin/check-keyboard-policy.sh'
+      - 'profiles/linux-dev/workstation-v0/gnome/input-install.sh'
+      - 'profiles/linux-dev/workstation-v0/gnome/README.md'
+      - 'profiles/linux-dev/workstation-v0/manifest.yaml'
+      - '.github/workflows/workstation-keyboard-policy.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'profiles/linux-dev/workstation-v0/bin/check-keyboard-policy.sh'
+      - 'profiles/linux-dev/workstation-v0/gnome/input-install.sh'
+      - 'profiles/linux-dev/workstation-v0/gnome/README.md'
+      - 'profiles/linux-dev/workstation-v0/manifest.yaml'
+      - '.github/workflows/workstation-keyboard-policy.yml'
+
+jobs:
+  keyboard-policy-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Syntax check keyboard policy scripts
+        run: |
+          set -euo pipefail
+          bash -n profiles/linux-dev/workstation-v0/bin/check-keyboard-policy.sh
+          bash -n profiles/linux-dev/workstation-v0/gnome/input-install.sh
+
+      - name: Smoke: keyboard policy helper default backend
+        run: |
+          set -euo pipefail
+          helper='profiles/linux-dev/workstation-v0/bin/check-keyboard-policy.sh'
+          tmp_home=$(mktemp -d)
+          out=$(HOME="$tmp_home" XDG_CONFIG_HOME="$tmp_home/.config" bash "$helper")
+          grep -F 'selected_backend=input-remapper' <<<"$out" >/dev/null
+          grep -F 'backend_valid=yes' <<<"$out" >/dev/null
+          grep -F 'input_installer=present' <<<"$out" >/dev/null
+
+      - name: Smoke: keyboard policy helper rejects invalid backend
+        run: |
+          set -euo pipefail
+          helper='profiles/linux-dev/workstation-v0/bin/check-keyboard-policy.sh'
+          tmp_home=$(mktemp -d)
+          out=$(HOME="$tmp_home" XDG_CONFIG_HOME="$tmp_home/.config" SOURCEOS_REMAP_BACKEND=invalid bash "$helper")
+          grep -F 'selected_backend=invalid' <<<"$out" >/dev/null
+          grep -F 'backend_valid=no' <<<"$out" >/dev/null
+
+      - name: Smoke: input installer writes xremap template in compatibility mode
+        run: |
+          set -euo pipefail
+          installer='profiles/linux-dev/workstation-v0/gnome/input-install.sh'
+          tmp_home=$(mktemp -d)
+          HOME="$tmp_home" XDG_CONFIG_HOME="$tmp_home/.config" XDG_CURRENT_DESKTOP=GNOME SOURCEOS_REMAP_BACKEND=xremap bash "$installer"
+          test -s "$tmp_home/.config/sourceos/input/xremap-macos-compat.yml"
