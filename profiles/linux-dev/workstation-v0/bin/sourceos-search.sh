@@ -8,6 +8,7 @@ warn(){ printf "WARN: %s\n" "$*" >&2; }
 have(){ command -v "$1" >/dev/null 2>&1; }
 
 cache_dir(){ echo "${XDG_CACHE_HOME:-$HOME/.cache}/sourceos"; }
+service_name(){ echo "sourceos-lampstand.service"; }
 
 open_file(){
   local p=$1
@@ -26,6 +27,31 @@ run_lampstand(){
   return 127
 }
 
+run_user_service(){
+  local action=$1
+  local svc
+  svc="$(service_name)"
+
+  case "$action" in
+    status)
+      systemctl --user status "$svc" --no-pager
+      ;;
+    start|stop|restart)
+      systemctl --user "$action" "$svc"
+      ;;
+    enable)
+      systemctl --user enable "$svc"
+      ;;
+    logs)
+      journalctl --user -u "$svc" --no-pager -n 200
+      ;;
+    *)
+      err "unknown service action: $action (use status|start|stop|restart|enable|logs)"
+      return 2
+      ;;
+  esac
+}
+
 usage(){
   cat <<'EOF'
 Usage:
@@ -33,6 +59,7 @@ Usage:
   sourceos-search.sh health [--open|--write <path>]
   sourceos-search.sh stats [--open|--write <path>]
   sourceos-search.sh index [--root <path>]...
+  sourceos-search.sh service status|start|stop|restart|enable|logs [--open|--write <path>]
 EOF
 }
 
@@ -59,11 +86,19 @@ SEARCH_WRITE_PATH=""
 QUERY_PARTS=()
 LAMPSTAND_ROOTS=()
 MODE="query"
+SERVICE_ACTION=""
 
 case "${1:-}" in
   health|stats|index)
     MODE="$1"
     shift
+    ;;
+  service)
+    MODE="service"
+    shift
+    SERVICE_ACTION="${1:-}"
+    [[ -n "$SERVICE_ACTION" ]] || { err "service requires an action"; usage; exit 2; }
+    shift || true
     ;;
 esac
 
@@ -99,6 +134,14 @@ case "$MODE" in
     for root in "${LAMPSTAND_ROOTS[@]}"; do args+=(--root "$root"); done
     run_lampstand "${args[@]}"
     exit $?
+    ;;
+  service)
+    set +e
+    out="$(run_user_service "$SERVICE_ACTION" 2>&1)"
+    rc=$?
+    set -e
+    write_or_print "$out" "lampstand-service-$SERVICE_ACTION.txt"
+    exit "$rc"
     ;;
 esac
 

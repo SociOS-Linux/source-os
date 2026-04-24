@@ -105,3 +105,41 @@ jobs:
           grep -F '"documents": 1' "$stats_out" >/dev/null
 
           PATH="$stub_bin:$PATH" bash "$helper" index --root "$tmp_dir" >/dev/null
+
+      - name: Smoke: sourceos-search user service commands with stub systemctl
+        run: |
+          set -euo pipefail
+          helper='profiles/linux-dev/workstation-v0/bin/sourceos-search.sh'
+          stub_bin=$(mktemp -d)
+          cat > "$stub_bin/systemctl" <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          test "${1:-}" = --user
+          shift
+          case "${1:-}" in
+            status)
+              printf 'sourceos-lampstand.service active\n'
+              ;;
+            start|stop|restart|enable)
+              printf 'systemctl --user %s %s\n' "$1" "${2:-}"
+              ;;
+            *)
+              printf 'unexpected systemctl args: %s\n' "$*" >&2
+              exit 2
+              ;;
+          esac
+          EOF
+          cat > "$stub_bin/journalctl" <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          printf 'lampstand log line\n'
+          EOF
+          chmod +x "$stub_bin/systemctl" "$stub_bin/journalctl"
+
+          tmp_dir=$(mktemp -d)
+          PATH="$stub_bin:$PATH" bash "$helper" service status --write "$tmp_dir/status.txt"
+          grep -F 'sourceos-lampstand.service active' "$tmp_dir/status.txt" >/dev/null
+          PATH="$stub_bin:$PATH" bash "$helper" service restart >/dev/null
+          PATH="$stub_bin:$PATH" bash "$helper" service enable >/dev/null
+          PATH="$stub_bin:$PATH" bash "$helper" service logs --write "$tmp_dir/logs.txt"
+          grep -F 'lampstand log line' "$tmp_dir/logs.txt" >/dev/null
