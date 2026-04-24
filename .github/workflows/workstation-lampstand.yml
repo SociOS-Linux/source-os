@@ -3,6 +3,7 @@ name: workstation-lampstand
 on:
   pull_request:
     paths:
+      - 'profiles/linux-dev/workstation-v0/bin/check-lampstand-unit.sh'
       - 'profiles/linux-dev/workstation-v0/bin/install-lampstand.sh'
       - 'profiles/linux-dev/workstation-v0/bin/sourceos-search.sh'
       - 'profiles/linux-dev/workstation-v0/manifest.yaml'
@@ -11,6 +12,7 @@ on:
     branches:
       - main
     paths:
+      - 'profiles/linux-dev/workstation-v0/bin/check-lampstand-unit.sh'
       - 'profiles/linux-dev/workstation-v0/bin/install-lampstand.sh'
       - 'profiles/linux-dev/workstation-v0/bin/sourceos-search.sh'
       - 'profiles/linux-dev/workstation-v0/manifest.yaml'
@@ -26,6 +28,7 @@ jobs:
       - name: Syntax check installer and helper
         run: |
           set -euo pipefail
+          bash -n profiles/linux-dev/workstation-v0/bin/check-lampstand-unit.sh
           bash -n profiles/linux-dev/workstation-v0/bin/install-lampstand.sh
           bash -n profiles/linux-dev/workstation-v0/bin/sourceos-search.sh
 
@@ -59,6 +62,27 @@ jobs:
           svc="$tmp_home/.config/systemd/user/sourceos-lampstand.service"
           test -f "$svc"
           grep -F 'lampstandd --root %h --rpc unixjson' "$svc" >/dev/null
+
+      - name: Smoke: Lampstand unit check helper
+        run: |
+          set -euo pipefail
+          helper='profiles/linux-dev/workstation-v0/bin/check-lampstand-unit.sh'
+          stub_bin=$(mktemp -d)
+          tmp_home=$(mktemp -d)
+          mkdir -p "$tmp_home/.config/systemd/user"
+          touch "$tmp_home/.config/systemd/user/sourceos-lampstand.service"
+          cat > "$stub_bin/systemctl" <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          test "${1:-}" = --user
+          test "${2:-}" = is-enabled || test "${2:-}" = is-active
+          exit 0
+          EOF
+          chmod +x "$stub_bin/systemctl"
+          out=$(HOME="$tmp_home" PATH="$stub_bin:$PATH" bash "$helper")
+          grep -F 'unit_file=present' <<<"$out" >/dev/null
+          grep -F 'enabled=yes' <<<"$out" >/dev/null
+          grep -F 'active=yes' <<<"$out" >/dev/null
 
       - name: Smoke: sourceos-search runtime commands with stub lampstand
         run: |
