@@ -17,6 +17,7 @@ Principles:
 ./appearance-apply.sh
 ./files-sidebar.sh
 ./mac-defaults.sh
+./input-install.sh
 ```
 
 ## Current baseline (v0)
@@ -48,6 +49,15 @@ This lane adds bounded visual/workflow polish without replacing GNOME Shell or l
 - `appearance-apply.sh` applies stable GNOME interface settings such as color-scheme preference, cursor size, font antialiasing, overlay scrolling, and primary-selection paste behavior.
 - `files-sidebar.sh` seeds GTK/Nautilus bookmarks for Desktop, Documents, Downloads, Pictures, Screenshots, Music, Videos, and Public.
 - The workstation installer runs both helpers best-effort after the extension pinset and before input/gesture setup.
+
+## Keyboard/remap policy v1
+
+The workstation keeps keyboard remapping explicit and policy-gated:
+
+- `input-remapper` remains the default Fedora/GNOME backend because it is packaged and works at the evdev layer.
+- `xremap` is the advanced compatibility lane; the installer writes a template at `$XDG_CONFIG_HOME/sourceos/input/xremap-macos-compat.yml`.
+- Kinto remains an explicit compatibility lane for X11/xkeysnail-style workflows and is not auto-installed in the Wayland-first profile.
+- `check-keyboard-policy.sh` emits key=value status for CI and future doctor/status integration.
 
 ## Follow-on work
 
