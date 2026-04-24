@@ -36,4 +36,9 @@ grep -q "application/vnd.oasis.opendocument.text=libreoffice-writer.desktop" "$M
   exit 1
 }
 
+grep -q "sourceos-office-open" "$DESKTOP_FILE" || {
+  echo "desktop entry install smoke failed: desktop entry does not reference launcher helper" >&2
+  exit 1
+}
+
 echo "desktop entry install smoke passed"
