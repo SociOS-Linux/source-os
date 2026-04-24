@@ -46,6 +46,7 @@ Workflow files:
 - Compatibility remap lanes: `xremap` and `kinto` (explicit compatibility path, not default).
 - Touchpad gesture lane: `fusuma`.
 - Mac-like GNOME behavior pack: left-side window controls, hot corners off, 12h clock, Files on `Super+E`, Terminal on `Super+Return`, dock favorites seeded.
+- Mac polish v1: Sushi quick preview, macOS-style screenshot helper, `Super+Shift+3/4/5/6` screenshot bindings, and `~/Pictures/Screenshots` output lane.
 - Local status/doctor surfaces that can be opened from the launcher (`sourceos status --open`, `sourceos doctor --open`).
 
 ## Apply
@@ -73,6 +74,31 @@ Or via the installed helper:
   sourceos doctor
   sourceos status --json
   sourceos search 'report OR invoice' --snippet
+
+## GNOME Mac polish commands
+
+The profile installs `mac-screenshot.sh` into `~/.local/bin` as a wrapper around the profile-local helper.
+
+Screenshot commands:
+
+  mac-screenshot.sh screen
+  mac-screenshot.sh area
+  mac-screenshot.sh window
+  mac-screenshot.sh interactive
+  mac-screenshot.sh open-dir
+
+Default screenshot output path:
+
+  ~/Pictures/Screenshots
+
+GNOME keybindings applied by `gnome/mac-defaults.sh`:
+
+  Super+Shift+3  full-screen screenshot
+  Super+Shift+4  area screenshot
+  Super+Shift+5  interactive screenshot UI
+  Super+Shift+6  open screenshots folder
+
+Quick preview behavior uses Fedora's `sushi` package, GNOME's Quick Look-style previewer for Nautilus.
 
 ## Lampstand runtime commands
 
@@ -112,6 +138,7 @@ Notes:
 - Kinto is treated as an explicit compatibility lane rather than the default Wayland-first path.
 - File search should resolve through Lampstand when available; the launcher must not run a redundant second file-search pass.
 - Lampstand is installed in user space and exposed through a user service, not as a mandatory host-system package.
+- Mac polish v1 stays inside bounded GNOME defaults and package installs; it does not fork GNOME Shell or replace libadwaita.
 
 ## Related docs
 
