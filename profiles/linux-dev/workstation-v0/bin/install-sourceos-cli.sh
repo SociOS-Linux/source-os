@@ -55,7 +55,7 @@ if [[ -z "$PROFILE_DIR" ]]; then
   exit 2
 fi
 
-exec "$PROFILE_DIR/bin/mac-screenshot.sh" "$@"
+exec bash "$PROFILE_DIR/bin/mac-screenshot.sh" "$@"
 EOF
   chmod +x "$SCREENSHOT_DEST"
 }
