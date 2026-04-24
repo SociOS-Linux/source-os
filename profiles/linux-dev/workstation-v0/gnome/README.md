@@ -14,6 +14,8 @@ Principles:
 ```bash
 ./apply.sh
 ./extensions-install.sh
+./appearance-apply.sh
+./files-sidebar.sh
 ./mac-defaults.sh
 ```
 
@@ -39,8 +41,16 @@ Principles:
 - `Super+Shift+5` interactive screenshot UI
 - `Super+Shift+6` open screenshot directory
 
+## Appearance/sidebar polish v1
+
+This lane adds bounded visual/workflow polish without replacing GNOME Shell or libadwaita:
+
+- `appearance-apply.sh` applies stable GNOME interface settings such as color-scheme preference, cursor size, font antialiasing, overlay scrolling, and primary-selection paste behavior.
+- `files-sidebar.sh` seeds GTK/Nautilus bookmarks for Desktop, Documents, Downloads, Pictures, Screenshots, Music, Videos, and Public.
+- The workstation installer runs both helpers best-effort after the extension pinset and before input/gesture setup.
+
 ## Follow-on work
 
 - Wayland-safe keyboard remap lane expansion
-- Optional bounded icon/cursor/font appearance pack
+- Optional bounded icon/cursor/font package set
 - More complete macOS-style shortcut map after validation
