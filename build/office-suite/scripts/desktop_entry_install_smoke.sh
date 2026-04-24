@@ -10,7 +10,7 @@ export XDG_CONFIG_HOME="$TMPDIR/config"
 export HOME="$TMPDIR/home"
 mkdir -p "$HOME"
 
-"$ROOT/build/office-suite/scripts/install_office_desktop_entry.sh" >/dev/null
+"$ROOT/build/office-suite/scripts/install_sourceos_office_shell.sh" >/dev/null
 
 DESKTOP_FILE="$XDG_DATA_HOME/applications/sourceos-office.desktop"
 BIN_FILE="$HOME/.local/bin/sourceos-office-open"
