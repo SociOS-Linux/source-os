@@ -135,9 +135,9 @@ apply_gnome_extensions(){
 
 apply_gnome_appearance(){
   local script="$PROFILE_DIR/gnome/appearance-apply.sh"
-  if [[ -x "$script" ]]; then
+  if [[ -f "$script" ]]; then
     info "Applying GNOME appearance defaults (best-effort)"
-    "$script" || warn "GNOME appearance defaults failed (non-fatal)"
+    bash "$script" || warn "GNOME appearance defaults failed (non-fatal)"
   else
     warn "GNOME appearance script not found: $script"
   fi
@@ -145,9 +145,9 @@ apply_gnome_appearance(){
 
 apply_files_sidebar(){
   local script="$PROFILE_DIR/gnome/files-sidebar.sh"
-  if [[ -x "$script" ]]; then
+  if [[ -f "$script" ]]; then
     info "Applying Files sidebar defaults (best-effort)"
-    "$script" || warn "Files sidebar defaults failed (non-fatal)"
+    bash "$script" || warn "Files sidebar defaults failed (non-fatal)"
   else
     warn "Files sidebar script not found: $script"
   fi
