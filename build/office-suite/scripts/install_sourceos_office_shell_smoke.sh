@@ -14,6 +14,7 @@ mkdir -p "$HOME"
 
 DESKTOP_FILE="$XDG_DATA_HOME/applications/sourceos-office.desktop"
 OPEN_BIN="$HOME/.local/bin/sourceos-office-open"
+SOURCEOS_OFFICE_BIN="$HOME/.local/bin/sourceos-office"
 CLOUD_BIN="$HOME/.local/bin/office_cloud_handoff.sh"
 MIME_FILE="$XDG_CONFIG_HOME/mimeapps.list"
 
@@ -27,6 +28,11 @@ MIME_FILE="$XDG_CONFIG_HOME/mimeapps.list"
   exit 1
 }
 
+[[ -x "$SOURCEOS_OFFICE_BIN" ]] || {
+  echo "office shell installer smoke failed: missing sourceos-office command" >&2
+  exit 1
+}
+
 [[ -x "$CLOUD_BIN" ]] || {
   echo "office shell installer smoke failed: missing cloud handoff helper" >&2
   exit 1
@@ -34,6 +40,12 @@ MIME_FILE="$XDG_CONFIG_HOME/mimeapps.list"
 
 [[ -f "$MIME_FILE" ]] || {
   echo "office shell installer smoke failed: missing MIME defaults" >&2
+  exit 1
+}
+
+OUT="$($SOURCEOS_OFFICE_BIN help)"
+[[ "$OUT" == *"usage: sourceos-office"* ]] || {
+  echo "office shell installer smoke failed: sourceos-office help mismatch" >&2
   exit 1
 }
 
