@@ -18,15 +18,16 @@ autopatch_enabled(){
 }
 
 install_system(){
+  local packages=(git openssh-clients podman toolbox wl-clipboard jq xclip sushi gnome-screenshot)
   if have rpm-ostree; then
-    info "rpm-ostree detected: installing minimal SYSTEM layer (may require reboot)"
-    sudo rpm-ostree install git openssh-clients podman toolbox wl-clipboard jq xclip || true
+    info "rpm-ostree detected: installing SYSTEM layer (may require reboot)"
+    sudo rpm-ostree install "${packages[@]}" || true
     info "If new packages were layered, reboot before continuing."
     return
   fi
   if have dnf; then
-    info "dnf detected: installing minimal SYSTEM layer"
-    sudo dnf install -y git openssh-clients podman toolbox wl-clipboard jq xclip || true
+    info "dnf detected: installing SYSTEM layer"
+    sudo dnf install -y "${packages[@]}" || true
     return
   fi
   err "No rpm-ostree/dnf found; cannot apply SYSTEM layer"
