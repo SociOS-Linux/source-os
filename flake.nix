@@ -33,37 +33,16 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
 
-          # Workstation v0 CLI toolset (best-effort).
-          # We intentionally tolerate missing attrs to avoid breaking flake evaluation.
           workstationV0Names = [
-            # baseline
             "git" "jq" "nixpkgs-fmt"
-
-            # nav/shell
             "fzf" "atuin" "bat" "zoxide" "yazi" "eza" "gum" "direnv" "tldr" "fd" "ripgrep"
-
-            # find/replace
             "sd"
-
-            # git
             "lazygit" "gh" "diff-so-fancy" "tig" "svu"
-
-            # process/ops
             "tmux" "sesh" "mprocs" "procs" "lazydocker" "k9s" "btop"
-
-            # json
             "jnv" "gojq" "fx" "jless" "jqp"
-
-            # disk
             "dua" "dust" "kondo"
-
-            # docs/bench/watch
             "glow" "hyperfine" "entr" "curlie"
-
-            # file motion
             "rclone" "rsync" "minio-client"
-
-            # launcher (optional)
             "albert"
           ];
 
@@ -154,6 +133,7 @@
           mesh-package-contract = import ./tests/mesh-package-contract.nix { inherit pkgs; };
           mesh-host-runtime-contract = import ./tests/mesh-host-runtime-contract.nix { inherit pkgs; };
           sourceos-shell-module-contract = import ./tests/sourceos-shell-module-contract.nix { inherit pkgs; };
+          sourceos-shell-pdf-stack-contract = import ./tests/sourceos-shell-pdf-stack-contract.nix { inherit pkgs; };
 
           meshd-package = self.packages.${system}.meshd;
           meshd-linkd-package = self.packages.${system}.meshd-linkd;
