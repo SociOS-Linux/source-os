@@ -245,6 +245,65 @@ check_lampstand_lane(){
   record_result warn lampstand "missing backend"
 }
 
+check_lampstand_unit(){
+  local helper="$(cd "$(dirname "$0")" && pwd)/bin/check-lampstand-unit.sh"
+  local out unit_file enabled active
+
+  if [[ ! -f "$helper" ]]; then
+    warn "Lampstand unit helper missing: $helper"
+    record_result warn lampstand-unit-helper "missing"
+    return
+  fi
+
+  if ! out="$(bash "$helper" 2>/dev/null)"; then
+    warn "Lampstand unit helper failed"
+    record_result warn lampstand-unit "helper failed"
+    return
+  fi
+
+  unit_file="$(awk -F= '$1=="unit_file" {print $2}' <<<"$out" | tail -n1)"
+  enabled="$(awk -F= '$1=="enabled" {print $2}' <<<"$out" | tail -n1)"
+  active="$(awk -F= '$1=="active" {print $2}' <<<"$out" | tail -n1)"
+
+  if [[ "$unit_file" == "present" ]]; then
+    info "ok: Lampstand user unit file"
+    record_result ok lampstand-unit-file "present"
+  else
+    warn "Lampstand user unit file missing"
+    record_result warn lampstand-unit-file "missing"
+  fi
+
+  case "$enabled" in
+    yes)
+      info "ok: Lampstand user unit enabled"
+      record_result ok lampstand-unit-enabled "yes"
+      ;;
+    no)
+      warn "Lampstand user unit not enabled"
+      record_result warn lampstand-unit-enabled "no"
+      ;;
+    *)
+      info "Lampstand user unit enabled state unknown"
+      record_result info lampstand-unit-enabled "unknown"
+      ;;
+  esac
+
+  case "$active" in
+    yes)
+      info "ok: Lampstand user unit active"
+      record_result ok lampstand-unit-active "yes"
+      ;;
+    no)
+      warn "Lampstand user unit not active"
+      record_result warn lampstand-unit-active "no"
+      ;;
+    *)
+      info "Lampstand user unit active state unknown"
+      record_result info lampstand-unit-active "unknown"
+      ;;
+  esac
+}
+
 check_gsettings_equals(){
   local schema=$1
   local key=$2
@@ -338,6 +397,7 @@ main(){
   check mc
   check rsync
   check_lampstand_lane
+  check_lampstand_unit
 
   if gnome_detect; then
     record_result info gnome "detected"
