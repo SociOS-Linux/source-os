@@ -12,5 +12,8 @@ cp "$DESKTOP_SRC" "$APP_DIR/sourceos-office.desktop"
 cp "$BIN_SRC" "$BIN_DIR/sourceos-office-open"
 chmod +x "$BIN_DIR/sourceos-office-open"
 
+"$ROOT/build/office-suite/scripts/install_office_mime_defaults.sh" >/dev/null
+
 echo "installed desktop entry to $APP_DIR/sourceos-office.desktop"
 echo "installed launcher helper to $BIN_DIR/sourceos-office-open"
+echo "installed office MIME defaults"
