@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+TMPDIR="$(mktemp -d)"
+trap 'rm -rf "$TMPDIR"' EXIT
+
+export XDG_DATA_HOME="$TMPDIR/share"
+export HOME="$TMPDIR/home"
+mkdir -p "$HOME"
+
+"$ROOT/build/office-suite/scripts/install_office_desktop_entry.sh" >/dev/null
+
+DESKTOP_FILE="$XDG_DATA_HOME/applications/sourceos-office.desktop"
+BIN_FILE="$HOME/.local/bin/sourceos-office-open"
+
+[[ -f "$DESKTOP_FILE" ]] || {
+  echo "desktop entry install smoke failed: missing desktop file" >&2
+  exit 1
+}
+
+[[ -x "$BIN_FILE" ]] || {
+  echo "desktop entry install smoke failed: missing launcher helper" >&2
+  exit 1
+}
+
+echo "desktop entry install smoke passed"
