@@ -636,6 +636,14 @@ main(){
           exit 2
           ;;
       esac
+      ;;
+
+    *)
+      err "unknown command: $cmd"
+      usage
+      exit 2
+      ;;
+  esac
 }
 
 main "$@"
