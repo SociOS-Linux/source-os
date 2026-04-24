@@ -1,0 +1,93 @@
+name: workstation-mac-polish
+
+on:
+  pull_request:
+    paths:
+      - 'profiles/linux-dev/workstation-v0/bin/mac-screenshot.sh'
+      - 'profiles/linux-dev/workstation-v0/bin/install-sourceos-cli.sh'
+      - 'profiles/linux-dev/workstation-v0/gnome/mac-defaults.sh'
+      - 'profiles/linux-dev/workstation-v0/gnome/README.md'
+      - 'profiles/linux-dev/workstation-v0/manifest.yaml'
+      - 'docs/workstation/**'
+      - '.github/workflows/workstation-mac-polish.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'profiles/linux-dev/workstation-v0/bin/mac-screenshot.sh'
+      - 'profiles/linux-dev/workstation-v0/bin/install-sourceos-cli.sh'
+      - 'profiles/linux-dev/workstation-v0/gnome/mac-defaults.sh'
+      - 'profiles/linux-dev/workstation-v0/gnome/README.md'
+      - 'profiles/linux-dev/workstation-v0/manifest.yaml'
+      - 'docs/workstation/**'
+      - '.github/workflows/workstation-mac-polish.yml'
+
+jobs:
+  mac-polish-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Syntax check Mac polish scripts
+        run: |
+          set -euo pipefail
+          bash -n profiles/linux-dev/workstation-v0/bin/mac-screenshot.sh
+          bash -n profiles/linux-dev/workstation-v0/bin/install-sourceos-cli.sh
+          bash -n profiles/linux-dev/workstation-v0/gnome/mac-defaults.sh
+
+      - name: Smoke: screenshot helper screen/area/window/open-dir with stub gnome-screenshot
+        run: |
+          set -euo pipefail
+          helper='profiles/linux-dev/workstation-v0/bin/mac-screenshot.sh'
+          stub_bin=$(mktemp -d)
+          tmp_home=$(mktemp -d)
+          out_dir="$tmp_home/Pictures/Screenshots"
+
+          cat > "$stub_bin/gnome-screenshot" <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          out=''
+          while [ "$#" -gt 0 ]; do
+            case "$1" in
+              -f)
+                shift
+                out="${1:-}"
+                ;;
+              -i)
+                exit 0
+                ;;
+              *)
+                ;;
+            esac
+            shift || true
+          done
+          if [ -n "$out" ]; then
+            mkdir -p "$(dirname "$out")"
+            printf 'png\n' > "$out"
+          fi
+          EOF
+          cat > "$stub_bin/xdg-open" <<'EOF'
+          #!/usr/bin/env bash
+          exit 0
+          EOF
+          chmod +x "$stub_bin/gnome-screenshot" "$stub_bin/xdg-open"
+
+          HOME="$tmp_home" PATH="$stub_bin:$PATH" bash "$helper" screen
+          HOME="$tmp_home" PATH="$stub_bin:$PATH" bash "$helper" area
+          HOME="$tmp_home" PATH="$stub_bin:$PATH" bash "$helper" window
+          HOME="$tmp_home" PATH="$stub_bin:$PATH" bash "$helper" interactive
+          HOME="$tmp_home" PATH="$stub_bin:$PATH" bash "$helper" open-dir
+
+          test -d "$out_dir"
+          test "$(find "$out_dir" -type f -name 'Screenshot-*.png' | wc -l)" -ge 3
+
+      - name: Smoke: install-sourceos-cli installs screenshot wrapper
+        run: |
+          set -euo pipefail
+          installer='profiles/linux-dev/workstation-v0/bin/install-sourceos-cli.sh'
+          tmp_home=$(mktemp -d)
+          HOME="$tmp_home" bash "$installer"
+          test -x "$tmp_home/.local/bin/sourceos"
+          test -x "$tmp_home/.local/bin/mac-screenshot.sh"
+          test -s "$tmp_home/.config/sourceos/profile.path"
