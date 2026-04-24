@@ -25,6 +25,14 @@ The Linux realization currently carries placeholder search-provider material at:
 
 These capture the intended rollout mode, routing invariant, and the provider choice for the Linux-native file search lane.
 
+## Validation scaffold
+
+The current Linux realization also adds a dedicated contract-style check at:
+
+- `tests/sourceos-shell-search-provider-contract.nix`
+
+This check verifies that the Linux-facing scaffold records the expected launcher/search policy and the `no_redundant_file_search` invariant.
+
 ## Lifecycle
 
 This command-bus/search-provider surface exists only until the shell's own command/search runtime fully absorbs the routing behavior.
