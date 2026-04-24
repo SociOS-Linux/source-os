@@ -16,6 +16,8 @@ spec:
         - xclip
         - fuzzel
         - input-remapper
+        - sushi
+        - gnome-screenshot
       dnf:
         - git
         - openssh-clients
@@ -26,6 +28,8 @@ spec:
         - xclip
         - fuzzel
         - input-remapper
+        - sushi
+        - gnome-screenshot
     user:
       brew:
         - fzf
@@ -83,6 +87,10 @@ spec:
           name: fusuma
           enabled: true
           rationale: "MIT multitouch gesture recognizer using libinput"
+      mac_polish:
+        quicklook: sushi
+        screenshots: gnome-screenshot
+        screenshot_dir: "~/Pictures/Screenshots"
   launcher:
     palette:
       primary: fuzzel

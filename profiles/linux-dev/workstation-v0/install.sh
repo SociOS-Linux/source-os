@@ -18,15 +18,16 @@ autopatch_enabled(){
 }
 
 install_system(){
+  local packages=(git openssh-clients podman toolbox wl-clipboard jq xclip sushi gnome-screenshot)
   if have rpm-ostree; then
-    info "rpm-ostree detected: installing minimal SYSTEM layer (may require reboot)"
-    sudo rpm-ostree install git openssh-clients podman toolbox wl-clipboard jq xclip || true
+    info "rpm-ostree detected: installing SYSTEM layer (may require reboot)"
+    sudo rpm-ostree install "${packages[@]}" || true
     info "If new packages were layered, reboot before continuing."
     return
   fi
   if have dnf; then
-    info "dnf detected: installing minimal SYSTEM layer"
-    sudo dnf install -y git openssh-clients podman toolbox wl-clipboard jq xclip || true
+    info "dnf detected: installing SYSTEM layer"
+    sudo dnf install -y "${packages[@]}" || true
     return
   fi
   err "No rpm-ostree/dnf found; cannot apply SYSTEM layer"
@@ -132,6 +133,26 @@ apply_gnome_extensions(){
   fi
 }
 
+apply_gnome_appearance(){
+  local script="$PROFILE_DIR/gnome/appearance-apply.sh"
+  if [[ -f "$script" ]]; then
+    info "Applying GNOME appearance defaults (best-effort)"
+    bash "$script" || warn "GNOME appearance defaults failed (non-fatal)"
+  else
+    warn "GNOME appearance script not found: $script"
+  fi
+}
+
+apply_files_sidebar(){
+  local script="$PROFILE_DIR/gnome/files-sidebar.sh"
+  if [[ -f "$script" ]]; then
+    info "Applying Files sidebar defaults (best-effort)"
+    bash "$script" || warn "Files sidebar defaults failed (non-fatal)"
+  else
+    warn "Files sidebar script not found: $script"
+  fi
+}
+
 apply_input_install(){
   local script="$PROFILE_DIR/gnome/input-install.sh"
   if [[ -x "$script" ]]; then
@@ -202,6 +223,8 @@ main(){
   patch_shell_rc_if_enabled
   apply_gnome_baseline
   apply_gnome_extensions
+  apply_gnome_appearance
+  apply_files_sidebar
   apply_input_install
   apply_fusuma_install
   apply_fusuma_config
