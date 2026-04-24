@@ -3,9 +3,13 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    lampstand-src = {
+      url = "github:SocioProphet/lampstand";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, lampstand-src }:
     let
       lib = nixpkgs.lib;
       systems = [ "x86_64-linux" "aarch64-linux" ];
@@ -19,6 +23,9 @@
           meshd = pkgs.callPackage ./packages/mesh/meshd.nix { };
           meshd-linkd = pkgs.callPackage ./packages/mesh/meshd-linkd.nix { };
           meshd-exitd = pkgs.callPackage ./packages/mesh/meshd-exitd.nix { };
+          lampstand = pkgs.callPackage ./packages/search/lampstand.nix {
+            inherit lampstand-src;
+          };
           default = meshd;
         });
 
@@ -74,7 +81,7 @@
           };
 
           workstation-v0 = pkgs.mkShell {
-            packages = presentPkgs;
+            packages = presentPkgs ++ [ self.packages.${system}.lampstand ];
             shellHook = ''
               echo "SourceOS Workstation v0 dev shell"
               echo "See docs/workstation/README.md"
@@ -151,6 +158,7 @@
           meshd-package = self.packages.${system}.meshd;
           meshd-linkd-package = self.packages.${system}.meshd-linkd;
           meshd-exitd-package = self.packages.${system}.meshd-exitd;
+          lampstand-package = self.packages.${system}.lampstand;
         });
 
       sourceos = {

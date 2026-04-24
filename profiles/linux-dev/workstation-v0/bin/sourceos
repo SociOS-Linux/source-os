@@ -49,6 +49,7 @@ Usage:
   sourceos fix fish [apply|dry-run|revert] [--json] [--open|--write <path>]
   sourceos doctor [--json|--open|--write <path>]
   sourceos status [--json|--open|--write <path>]
+  sourceos search [--limit N] [--snippet] [--prompt] [--open|--write <path>] [query...]
   sourceos profile apply
   sourceos profile path
 
@@ -285,6 +286,24 @@ check_bin(){
   return 1
 }
 
+status_check_lampstand(){
+  local search_helper="$PROFILE_DIR/bin/sourceos-search.sh"
+
+  if [[ ! -f "$search_helper" ]]; then
+    WARNINGS+=("missing sourceos search helper: $search_helper")
+  fi
+
+  if check_bin lampstand; then
+    return 0
+  fi
+
+  if have python3 && python3 -c 'import lampstand.cli' >/dev/null 2>&1; then
+    return 0
+  fi
+
+  WARNINGS+=("lampstand backend unavailable")
+}
+
 status_collect(){
   REQUIRED_MISSING=()
   OPTIONAL_MISSING=()
@@ -309,6 +328,8 @@ status_collect(){
   if ! check_bin xclip; then
     OPTIONAL_MISSING+=("xclip")
   fi
+
+  status_check_lampstand
 
   if gnome_detect; then
     if ! check_bin gsettings; then
@@ -451,6 +472,7 @@ Palette: Fix fish config (apply)	sourceos fix fish apply
 Palette: Revert fish config patch	sourceos fix fish revert
 Status (open report)	sourceos status --open
 Doctor (open text report)	sourceos doctor --open
+Search files (Lampstand)	sourceos search --prompt --snippet --open
 Apply profile	sourceos profile apply
 Open sesh	sesh
 Open tmux	tmux
@@ -558,6 +580,13 @@ main(){
           exit 2
           ;;
       esac
+      ;;
+
+    search)
+      shift || true
+      local search_helper="$PROFILE_DIR/bin/sourceos-search.sh"
+      [[ -f "$search_helper" ]] || { err "search helper missing: $search_helper"; exit 2; }
+      exec bash "$search_helper" "$@"
       ;;
 
     profile)
