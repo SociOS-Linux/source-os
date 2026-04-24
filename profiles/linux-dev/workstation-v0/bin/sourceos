@@ -305,6 +305,29 @@ status_check_lampstand(){
   WARNINGS+=("lampstand backend unavailable")
 }
 
+status_check_lampstand_unit(){
+  local helper="$PROFILE_DIR/bin/check-lampstand-unit.sh"
+  local out unit_file enabled active
+
+  if [[ ! -f "$helper" ]]; then
+    WARNINGS+=("missing lampstand unit helper: $helper")
+    return
+  fi
+
+  if ! out="$(bash "$helper" 2>/dev/null)"; then
+    WARNINGS+=("lampstand unit helper failed")
+    return
+  fi
+
+  unit_file="$(awk -F= '$1=="unit_file" {print $2}' <<<"$out" | tail -n1)"
+  enabled="$(awk -F= '$1=="enabled" {print $2}' <<<"$out" | tail -n1)"
+  active="$(awk -F= '$1=="active" {print $2}' <<<"$out" | tail -n1)"
+
+  [[ "$unit_file" == "present" ]] || WARNINGS+=("lampstand user unit file missing")
+  [[ "$enabled" == "yes" || "$enabled" == "unknown" ]] || WARNINGS+=("lampstand user unit not enabled")
+  [[ "$active" == "yes" || "$active" == "unknown" ]] || WARNINGS+=("lampstand user unit not active")
+}
+
 status_collect(){
   REQUIRED_MISSING=()
   OPTIONAL_MISSING=()
@@ -331,6 +354,7 @@ status_collect(){
   fi
 
   status_check_lampstand
+  status_check_lampstand_unit
 
   if gnome_detect; then
     if ! check_bin gsettings; then
@@ -612,14 +636,6 @@ main(){
           exit 2
           ;;
       esac
-      ;;
-
-    *)
-      err "unknown command: $cmd"
-      usage
-      exit 2
-      ;;
-  esac
 }
 
 main "$@"
