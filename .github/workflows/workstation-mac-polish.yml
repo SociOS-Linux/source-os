@@ -3,6 +3,7 @@ name: workstation-mac-polish
 on:
   pull_request:
     paths:
+      - 'profiles/linux-dev/workstation-v0/bin/check-mac-polish.sh'
       - 'profiles/linux-dev/workstation-v0/bin/mac-screenshot.sh'
       - 'profiles/linux-dev/workstation-v0/bin/install-sourceos-cli.sh'
       - 'profiles/linux-dev/workstation-v0/gnome/mac-defaults.sh'
@@ -14,6 +15,7 @@ on:
     branches:
       - main
     paths:
+      - 'profiles/linux-dev/workstation-v0/bin/check-mac-polish.sh'
       - 'profiles/linux-dev/workstation-v0/bin/mac-screenshot.sh'
       - 'profiles/linux-dev/workstation-v0/bin/install-sourceos-cli.sh'
       - 'profiles/linux-dev/workstation-v0/gnome/mac-defaults.sh'
@@ -32,6 +34,7 @@ jobs:
       - name: Syntax check Mac polish scripts
         run: |
           set -euo pipefail
+          bash -n profiles/linux-dev/workstation-v0/bin/check-mac-polish.sh
           bash -n profiles/linux-dev/workstation-v0/bin/mac-screenshot.sh
           bash -n profiles/linux-dev/workstation-v0/bin/install-sourceos-cli.sh
           bash -n profiles/linux-dev/workstation-v0/gnome/mac-defaults.sh
@@ -45,3 +48,30 @@ jobs:
           test -x "$tmp_home/.local/bin/sourceos"
           test -x "$tmp_home/.local/bin/mac-screenshot.sh"
           test -s "$tmp_home/.config/sourceos/profile.path"
+
+      - name: Smoke: Mac polish check helper reports expected keys
+        run: |
+          set -euo pipefail
+          helper='profiles/linux-dev/workstation-v0/bin/check-mac-polish.sh'
+          stub_bin=$(mktemp -d)
+          tmp_home=$(mktemp -d)
+          mkdir -p "$tmp_home/Pictures/Screenshots"
+          cat > "$stub_bin/gnome-screenshot" <<'EOF'
+          #!/usr/bin/env bash
+          exit 0
+          EOF
+          cat > "$stub_bin/sushi" <<'EOF'
+          #!/usr/bin/env bash
+          exit 0
+          EOF
+          cat > "$stub_bin/mac-screenshot.sh" <<'EOF'
+          #!/usr/bin/env bash
+          exit 0
+          EOF
+          chmod +x "$stub_bin/gnome-screenshot" "$stub_bin/sushi" "$stub_bin/mac-screenshot.sh"
+          out=$(HOME="$tmp_home" PATH="$stub_bin:$PATH" bash "$helper")
+          grep -F 'screenshot_helper=present' <<<"$out" >/dev/null
+          grep -F 'screenshot_wrapper=present' <<<"$out" >/dev/null
+          grep -F 'gnome_screenshot=present' <<<"$out" >/dev/null
+          grep -F 'sushi=present' <<<"$out" >/dev/null
+          grep -F 'screenshot_dir=present' <<<"$out" >/dev/null
