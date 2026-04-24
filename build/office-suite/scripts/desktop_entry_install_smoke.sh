@@ -6,6 +6,7 @@ TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
 export XDG_DATA_HOME="$TMPDIR/share"
+export XDG_CONFIG_HOME="$TMPDIR/config"
 export HOME="$TMPDIR/home"
 mkdir -p "$HOME"
 
@@ -13,6 +14,7 @@ mkdir -p "$HOME"
 
 DESKTOP_FILE="$XDG_DATA_HOME/applications/sourceos-office.desktop"
 BIN_FILE="$HOME/.local/bin/sourceos-office-open"
+MIME_FILE="$XDG_CONFIG_HOME/mimeapps.list"
 
 [[ -f "$DESKTOP_FILE" ]] || {
   echo "desktop entry install smoke failed: missing desktop file" >&2
@@ -21,6 +23,16 @@ BIN_FILE="$HOME/.local/bin/sourceos-office-open"
 
 [[ -x "$BIN_FILE" ]] || {
   echo "desktop entry install smoke failed: missing launcher helper" >&2
+  exit 1
+}
+
+[[ -f "$MIME_FILE" ]] || {
+  echo "desktop entry install smoke failed: missing MIME defaults" >&2
+  exit 1
+}
+
+grep -q "application/vnd.oasis.opendocument.text=libreoffice-writer.desktop" "$MIME_FILE" || {
+  echo "desktop entry install smoke failed: missing writer MIME association" >&2
   exit 1
 }
 
