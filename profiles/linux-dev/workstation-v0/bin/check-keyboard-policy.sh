@@ -18,41 +18,61 @@ template_path(){
   printf '%s/sourceos/input/xremap-macos-compat.yml\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
 }
 
+present_or_missing(){
+  if have "$1"; then
+    printf 'present\n'
+  else
+    printf 'missing\n'
+  fi
+}
+
 main(){
-  local pdir b tmpl
+  local pdir b tmpl backend_valid input_remapper xremap_bin xkeysnail selected_available policy_ok
   pdir="$(profile_dir)"
   b="$(backend)"
   tmpl="$(template_path)"
+  backend_valid=no
+  selected_available=unknown
+  policy_ok=no
 
   printf 'profile_dir=%s\n' "$pdir"
+  printf 'default_backend=input-remapper\n'
+  printf 'primary_backend=input-remapper\n'
+  printf 'compatibility_backends=xremap,kinto\n'
+  printf 'wayland_first=yes\n'
+  printf 'kinto_auto_install=no\n'
   printf 'selected_backend=%s\n' "$b"
 
   case "$b" in
     input-remapper|xremap|kinto)
-      printf 'backend_valid=yes\n'
-      ;;
-    *)
-      printf 'backend_valid=no\n'
+      backend_valid=yes
       ;;
   esac
+  printf 'backend_valid=%s\n' "$backend_valid"
 
-  if have input-remapper-control; then
-    printf 'input_remapper=present\n'
-  else
-    printf 'input_remapper=missing\n'
-  fi
+  input_remapper="$(present_or_missing input-remapper-control)"
+  xremap_bin="$(present_or_missing xremap)"
+  xkeysnail="$(present_or_missing xkeysnail)"
 
-  if have xremap; then
-    printf 'xremap=present\n'
-  else
-    printf 'xremap=missing\n'
-  fi
+  printf 'input_remapper=%s\n' "$input_remapper"
+  printf 'xremap=%s\n' "$xremap_bin"
+  printf 'xkeysnail=%s\n' "$xkeysnail"
 
-  if have xkeysnail; then
-    printf 'xkeysnail=present\n'
-  else
-    printf 'xkeysnail=missing\n'
-  fi
+  case "$b" in
+    input-remapper)
+      selected_available="$input_remapper"
+      ;;
+    xremap)
+      selected_available="$xremap_bin"
+      ;;
+    kinto)
+      selected_available="$xkeysnail"
+      ;;
+    *)
+      selected_available=invalid
+      ;;
+  esac
+  printf 'selected_backend_available=%s\n' "$selected_available"
 
   if [[ -f "$tmpl" ]]; then
     printf 'xremap_template=present\n'
@@ -66,6 +86,11 @@ main(){
   else
     printf 'input_installer=missing\n'
   fi
+
+  if [[ "$backend_valid" == "yes" ]]; then
+    policy_ok=yes
+  fi
+  printf 'policy_ok=%s\n' "$policy_ok"
 }
 
 main "$@"
