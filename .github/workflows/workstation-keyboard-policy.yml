@@ -87,3 +87,6 @@ jobs:
           grep -F 'Control_L: Super_L' "$tmpl" >/dev/null
           grep -F 'Super_L: Alt_L' "$tmpl" >/dev/null
           grep -F 'Alt_L: Control_L' "$tmpl" >/dev/null
+          grep -F 'Control_R: Super_R' "$tmpl" >/dev/null
+          grep -F 'Super_R: Alt_R' "$tmpl" >/dev/null
+          grep -F 'Alt_R: Control_R' "$tmpl" >/dev/null
