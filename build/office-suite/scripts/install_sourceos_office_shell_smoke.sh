@@ -17,6 +17,8 @@ OPEN_BIN="$HOME/.local/bin/sourceos-office-open"
 SOURCEOS_OFFICE_BIN="$HOME/.local/bin/sourceos-office"
 CLOUD_BIN="$HOME/.local/bin/office_cloud_handoff.sh"
 MIME_FILE="$XDG_CONFIG_HOME/mimeapps.list"
+TEST_DOC="$TMPDIR/demo.txt"
+echo "SourceOS office shell smoke" > "$TEST_DOC"
 
 [[ -f "$DESKTOP_FILE" ]] || {
   echo "office shell installer smoke failed: missing desktop entry" >&2
@@ -43,10 +45,13 @@ MIME_FILE="$XDG_CONFIG_HOME/mimeapps.list"
   exit 1
 }
 
-OUT="$($SOURCEOS_OFFICE_BIN help)"
-[[ "$OUT" == *"usage: sourceos-office"* ]] || {
-  echo "office shell installer smoke failed: sourceos-office help mismatch" >&2
-  exit 1
-}
+OUT="$(SOURCEOS_OFFICE_MODE=cloud "$SOURCEOS_OFFICE_BIN" open "$TEST_DOC")"
+case "$OUT" in
+  http://*|https://*) ;;
+  *)
+    echo "office shell installer smoke failed: installed sourceos-office open path did not return URL" >&2
+    exit 1
+    ;;
+esac
 
 echo "office shell installer smoke passed"
