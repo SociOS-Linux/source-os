@@ -7,7 +7,7 @@ set -euo pipefail
 repo_root(){
   local here
   here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  cd "$here/../../.." && pwd
+  cd "$here/../../../.." && pwd
 }
 
 present(){
