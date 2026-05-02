@@ -2,6 +2,15 @@
 
 Work issue-first.
 
+## Executor policy
+
+**Copilot is the primary executor** for bounded issue-first PR work in this repository.
+
+- Assign issues to Copilot to produce verifiable GitHub work artifacts (PR, branch, commit, or merge).
+- Codex may be used as a reviewer, cross-repo analyst, or backup executor — it is not the default executor.
+- Codex issue comments alone are **not** delivery artifacts. Delivery is only confirmed when GitHub shows a PR, branch, commit, or merge.
+- The issue body must contain the full task specification because Copilot may not see later issue comments after assignment.
+
 Rules:
 
 - One repo, one issue, one PR.

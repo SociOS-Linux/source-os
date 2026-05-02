@@ -1,3 +1,13 @@
+## Executor policy
+
+**Copilot is the primary executor** for bounded issue-first PR work in this repository.
+
+- The issue body is the complete source of truth for every task. Do not rely on later comments; Copilot may not see them after assignment.
+- Delivery is confirmed only when GitHub shows a PR, branch, commit, or merge. Issue comments alone — including Codex comments — are **not** delivery artifacts.
+- Codex may be used for review, cross-repo analysis, or as a backup executor, but never as the default executor.
+
+---
+
 Use the GitHub issue body as the source of truth.
 
 Before editing:
