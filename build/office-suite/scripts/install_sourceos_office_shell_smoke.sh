@@ -66,4 +66,22 @@ VERIFY_OUT="$($SOURCEOS_OFFICE_BIN verify)"
   exit 1
 }
 
+FAKEBIN="$TMPDIR/fakebin"
+mkdir -p "$FAKEBIN"
+cat > "$FAKEBIN/lampstand" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$TEST_DOC"
+EOF
+chmod +x "$FAKEBIN/lampstand"
+
+SEARCH_OUT="$(PATH="$FAKEBIN:$PATH" SOURCEOS_OFFICE_MODE=cloud "$SOURCEOS_OFFICE_BIN" search demo)"
+case "$SEARCH_OUT" in
+  http://*|https://*) ;;
+  *)
+    echo "office shell installer smoke failed: installed sourceos-office search path did not return URL" >&2
+    exit 1
+    ;;
+esac
+
 echo "office shell installer smoke passed"
