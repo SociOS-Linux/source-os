@@ -2,11 +2,27 @@
 
 Work issue-first.
 
-Rules:
+## Dispatch policy
+
+Copilot is the primary executor for bounded issue-first PR work in this repository.
+
+Use Codex as a reviewer, cross-repo analyst, or backup implementation agent when Copilot is unavailable or when cross-repo reasoning is needed. Do not count Codex comments as delivery unless GitHub shows a PR, branch, commit, or merge.
+
+Delivery means one of the following exists in GitHub:
+
+- PR;
+- branch;
+- commit;
+- merge.
+
+Agent comments, summaries, and local-task reports are engagement signals only.
+
+## Rules
 
 - One repo, one issue, one PR.
 - Inspect the live repository before editing.
 - Use the GitHub issue body as the source of truth.
+- Put the full task, acceptance criteria, validation commands, and non-goals in the issue body before assignment.
 - Keep scope bounded to the issue body.
 - Do not broaden scope without asking in the issue.
 - Do not touch unrelated files.
