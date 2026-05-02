@@ -59,6 +59,25 @@ The workstation keeps keyboard remapping explicit and policy-gated:
 - Kinto remains an explicit compatibility lane for X11/xkeysnail-style workflows and is not auto-installed in the Wayland-first profile.
 - `check-keyboard-policy.sh` emits key=value status for CI and future doctor/status integration.
 
+## Dock/extension validation
+
+The dock and extension lane can be inspected without changing system state:
+
+```bash
+./profiles/linux-dev/workstation-v0/bin/check-gnome-dock-extension.sh
+```
+
+The helper emits key=value output for:
+
+- `gnome_extensions`
+- `gsettings`
+- `dash_to_dock`
+- `appindicator`
+- `favorite_apps_visibility`
+- `gnome_dock_extension_lane_ok`
+
+It is read-only and does not install, enable, or modify extensions.
+
 ## Follow-on work
 
 - Wayland-safe keyboard remap lane expansion
