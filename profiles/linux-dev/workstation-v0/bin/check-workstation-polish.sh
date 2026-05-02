@@ -31,6 +31,8 @@ main(){
   printf 'profile_dir=%s\n' "$pdir"
   emit_section mac_polish "$pdir/bin/check-mac-polish.sh"
   emit_section keyboard_policy "$pdir/bin/check-keyboard-policy.sh"
+  emit_section shortcut_map "$pdir/bin/check-shortcut-map-contract.sh"
+  emit_section gnome_dock "$pdir/bin/check-gnome-dock-extension.sh"
 }
 
 main "$@"
