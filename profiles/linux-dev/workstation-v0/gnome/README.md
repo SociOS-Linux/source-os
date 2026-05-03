@@ -42,6 +42,18 @@ Principles:
 - `Super+Shift+5` interactive screenshot UI
 - `Super+Shift+6` open screenshot directory
 
+## Mac defaults validation
+
+The mac-like GNOME defaults script can be inspected without running GNOME:
+
+```bash
+./profiles/linux-dev/workstation-v0/bin/check-mac-defaults.sh
+```
+
+The helper emits key=value output for the expected behavior slice, including hot corners, 12h clock, locate pointer, Nautilus click policy, dock favorites, Files/Terminal bindings, screenshot bindings, and screenshot directory setup.
+
+It is read-only and does not change active keybindings or GNOME settings.
+
 ## Appearance/sidebar polish v1
 
 This lane adds bounded visual/workflow polish without replacing GNOME Shell or libadwaita:
