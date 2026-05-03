@@ -15,6 +15,7 @@ mkdir -p "$HOME"
 DESKTOP_FILE="$XDG_DATA_HOME/applications/sourceos-office.desktop"
 OPEN_BIN="$HOME/.local/bin/sourceos-office-open"
 SOURCEOS_OFFICE_BIN="$HOME/.local/bin/sourceos-office"
+INSTALL_BIN="$HOME/.local/bin/install_sourceos_office_shell.sh"
 VERIFY_BIN="$HOME/.local/bin/office_shell_verify.sh"
 CLOUD_BIN="$HOME/.local/bin/office_cloud_handoff.sh"
 MIME_FILE="$XDG_CONFIG_HOME/mimeapps.list"
@@ -33,6 +34,11 @@ echo "SourceOS office shell smoke" > "$TEST_DOC"
 
 [[ -x "$SOURCEOS_OFFICE_BIN" ]] || {
   echo "office shell installer smoke failed: missing sourceos-office command" >&2
+  exit 1
+}
+
+[[ -x "$INSTALL_BIN" ]] || {
+  echo "office shell installer smoke failed: missing install_sourceos_office_shell helper" >&2
   exit 1
 }
 
@@ -83,5 +89,7 @@ case "$SEARCH_OUT" in
     exit 1
     ;;
 esac
+
+"$SOURCEOS_OFFICE_BIN" install >/dev/null
 
 echo "office shell installer smoke passed"
