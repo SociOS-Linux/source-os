@@ -9,13 +9,15 @@ BIN_DIR="$HOME/.local/bin"
 
 mkdir -p "$BIN_DIR"
 cp "$ROOT/build/office-suite/scripts/sourceos-office" "$BIN_DIR/sourceos-office"
+cp "$ROOT/build/office-suite/scripts/install_sourceos_office_shell.sh" "$BIN_DIR/install_sourceos_office_shell.sh"
 cp "$ROOT/build/office-suite/scripts/office_shell_verify.sh" "$BIN_DIR/office_shell_verify.sh"
-chmod +x "$BIN_DIR/sourceos-office" "$BIN_DIR/office_shell_verify.sh"
+chmod +x "$BIN_DIR/sourceos-office" "$BIN_DIR/install_sourceos_office_shell.sh" "$BIN_DIR/office_shell_verify.sh"
 
 if [[ -x "$ROOT/build/office-suite/scripts/verify_office_suite_profile.sh" ]]; then
   "$ROOT/build/office-suite/scripts/verify_office_suite_profile.sh"
 fi
 
 echo "installed sourceos-office to $BIN_DIR/sourceos-office"
+echo "installed install_sourceos_office_shell.sh to $BIN_DIR/install_sourceos_office_shell.sh"
 echo "installed office_shell_verify.sh to $BIN_DIR/office_shell_verify.sh"
 echo "SourceOS office shell install completed"
