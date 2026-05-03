@@ -42,7 +42,7 @@ claim or target macOS parity.
 **What it means:** An OS that competes on the following dimensions: runtime
 integrity and verified boot, hardware lifecycle and firmware management, complete
 backup and recovery, cryptographic identity and trust envelope, cross-device
-continuity equivalents, accessible and fully localised UI, a stable and audited
+continuity equivalents, accessible and fully localized UI, a stable and audited
 contract canon for agents and host interfaces, evidence and reporting pipelines,
 and a viable developer/user ecosystem.
 
@@ -158,15 +158,20 @@ it is verified, or how sandboxing is applied. Required work:
 - Runtime integrity check integrated with `sourceos doctor`.
 - Capability-based permission model sketch for agent-invoked processes.
 
-### Accessibility and localisation (P2 — Tier 2 / 3)
+### Accessibility and localization (P2 — Tier 2 / 3)
 
-Gap: No accessibility audit or localisation plan exists. The profile applies
+Gap: No accessibility audit or localization plan exists. The profile applies
 GNOME defaults (which have reasonable a11y support) but does not test, document,
 or extend it. Required work:
 
 - GNOME a11y settings applied by `appearance-apply.sh` or a dedicated helper.
 - At least one locale other than `en_US` tested and documented.
 - WCAG audit note on any custom UI surfaces (launcher, palette).
+
+**Acceptance gate:**
+```bash
+test -s docs/workstation/accessibility.md
+```
 
 ### Evidence and reporting (P2 — Tier 3)
 
@@ -203,7 +208,7 @@ The following table uses the same status vocabulary as the acceptance matrix.
 | Agent Machine interface | draft only | draft only | gap (see above) |
 | App / runtime trust | not started | not started | gap (see above) |
 | Accessibility | GNOME defaults only | not audited | gap (see above) |
-| Localisation | not started | not started | gap (see above) |
+| Localization | not started | not started | gap (see above) |
 | Evidence / reporting | partial (CI only) | not started | gap (see above) |
 
 **Overall maturity rating: Tier 1 in progress. Tier 2 and Tier 3 not yet
