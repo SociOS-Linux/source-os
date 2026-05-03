@@ -112,6 +112,24 @@ grep -q "SourceOS sovereign writer template placeholder" "$NEW_DOC" || {
   exit 1
 }
 
+DEFAULT_NEW_OUT="$($SOURCEOS_OFFICE_BIN new writer)"
+case "$DEFAULT_NEW_OUT" in
+  "$HOME"/Documents/SourceOS/agent-output/*.fodt) ;;
+  *)
+    echo "office shell installer smoke failed: default new path did not use SourceOS agent-output" >&2
+    exit 1
+    ;;
+esac
+[[ -f "$DEFAULT_NEW_OUT" ]] || {
+  echo "office shell installer smoke failed: default new path did not create file" >&2
+  exit 1
+}
+
+grep -q "SourceOS sovereign writer template placeholder" "$DEFAULT_NEW_OUT" || {
+  echo "office shell installer smoke failed: default writer file does not contain template payload" >&2
+  exit 1
+}
+
 "$SOURCEOS_OFFICE_BIN" install >/dev/null
 
 echo "office shell installer smoke passed"
