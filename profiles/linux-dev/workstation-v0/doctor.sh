@@ -305,9 +305,8 @@ check_lampstand_unit(){
 }
 
 check_workstation_polish(){
-  local helper
-  helper="$(cd "$(dirname "$0")" && pwd)/bin/check-workstation-polish.sh"
-  local out mac_helper keyboard_helper policy_ok backend_valid
+  local helper="$(cd "$(dirname "$0")" && pwd)/bin/check-workstation-polish.sh"
+  local out policy_ok
 
   if [[ ! -f "$helper" ]]; then
     warn "workstation polish helper missing: $helper"
@@ -315,44 +314,35 @@ check_workstation_polish(){
     return
   fi
 
-  set +e
-  out="$(bash "$helper" 2>/dev/null)"
-  local rc=$?
-  set -e
-
-  if [[ $rc -ne 0 ]]; then
-    warn "workstation polish helper failed (exit $rc)"
+  if ! out="$(bash "$helper" 2>/dev/null)"; then
+    warn "workstation polish helper failed"
     record_result warn workstation-polish "helper failed"
     return
   fi
 
-  mac_helper="$(awk -F= '$1=="mac_polish.helper" {print $2}' <<<"$out" | tail -n1)"
-  keyboard_helper="$(awk -F= '$1=="keyboard_policy.helper" {print $2}' <<<"$out" | tail -n1)"
+  if grep -Fqx 'mac_polish.helper=present' <<<"$out"; then
+    info "ok: Mac polish helper signal"
+    record_result ok mac-polish-helper "present"
+  else
+    warn "Mac polish helper signal missing"
+    record_result warn mac-polish-helper "missing"
+  fi
+
+  if grep -Fqx 'keyboard_policy.helper=present' <<<"$out"; then
+    info "ok: keyboard policy helper signal"
+    record_result ok keyboard-policy-helper "present"
+  else
+    warn "keyboard policy helper signal missing"
+    record_result warn keyboard-policy-helper "missing"
+  fi
+
   policy_ok="$(awk -F= '$1=="keyboard_policy.policy_ok" {print $2}' <<<"$out" | tail -n1)"
-  backend_valid="$(awk -F= '$1=="keyboard_policy.backend_valid" {print $2}' <<<"$out" | tail -n1)"
-
-  if [[ "$mac_helper" == "present" ]]; then
-    info "ok: mac polish helper"
-    record_result ok workstation-polish:mac-helper "present"
-  else
-    warn "mac polish helper missing"
-    record_result warn workstation-polish:mac-helper "missing"
-  fi
-
-  if [[ "$keyboard_helper" == "present" ]]; then
-    info "ok: keyboard policy helper"
-    record_result ok workstation-polish:keyboard-helper "present"
-  else
-    warn "keyboard policy helper missing"
-    record_result warn workstation-polish:keyboard-helper "missing"
-  fi
-
   if [[ "$policy_ok" == "yes" ]]; then
-    info "ok: keyboard policy"
-    record_result ok workstation-polish:keyboard-policy "valid"
+    info "ok: keyboard policy valid"
+    record_result ok keyboard-policy "valid"
   else
-    warn "keyboard policy not valid (backend_valid=${backend_valid:-unknown})"
-    record_result warn workstation-polish:keyboard-policy "not valid"
+    warn "keyboard policy is not valid"
+    record_result warn keyboard-policy "invalid"
   fi
 }
 
