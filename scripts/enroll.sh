@@ -148,7 +148,13 @@ step 1 "Hardware configuration"
 if [[ -f "${HW_CONFIG}" ]]; then
     ok "hardware-configuration.nix already present"
 else
-    nixos-generate-config --show-hardware-config > "${HW_CONFIG}"
+    # Write to a temp file first. `nixos-generate-config > HW_CONFIG` would truncate
+    # HW_CONFIG to zero bytes before the command runs; if the command then fails,
+    # the empty file remains and subsequent idempotent re-runs skip generation while
+    # pass-1 nixos-rebuild fails with a confusing empty-import Nix error.
+    nixos-generate-config --show-hardware-config > "${HW_CONFIG}.tmp"
+    [[ -s "${HW_CONFIG}.tmp" ]] || die "nixos-generate-config produced empty output — check: journalctl -xe"
+    mv "${HW_CONFIG}.tmp" "${HW_CONFIG}"
     ok "Generated ${HW_CONFIG} ($(elapsed))"
 fi
 
@@ -161,14 +167,15 @@ step 2 "nixos-rebuild switch — pass 1 (installs Docker, age, sops, minisign)"
 # from the working directory via builtins.pathExists and direct import.
 info "Building... (5-15 min on first run, downloads packages)"
 PASS1_LOG="/tmp/sourceos-enroll-pass1-$(date +%s).log"
+# `|| true` resets PIPESTATUS to [0] — do NOT use it here. Instead bracket with
+# set +e so that grep exiting 1 (no matching lines on a cached build) does not
+# abort the script, while PIPESTATUS[0] still carries nixos-rebuild's real exit code.
+set +e
 nixos-rebuild switch --flake "${REPO_ROOT}#${HOST}" --impure 2>&1 | \
     tee "${PASS1_LOG}" | \
-    grep --line-buffered -E '(building|fetching|error|warning|Error|FAILED|activating)' || true
-# Capture nixos-rebuild exit code from PIPESTATUS[0] before any other command resets it.
-# The `|| true` on the grep does NOT reset PIPESTATUS — it only applies to the grep's own
-# exit, not to the pipeline. This is the reliable way to detect nixos-rebuild failure
-# without relying on fragile log-pattern matching.
+    grep --line-buffered -E '(building|fetching|error|warning|Error|FAILED|activating)'
 NB1_EXIT=${PIPESTATUS[0]}
+set -e
 [[ $NB1_EXIT -eq 0 ]] || die "Pass 1 rebuild failed (exit ${NB1_EXIT}). Full log: ${PASS1_LOG}
     Check: journalctl -xe | tail -50"
 ok "Pass 1 complete ($(elapsed)) — log: ${PASS1_LOG}"
@@ -182,7 +189,7 @@ require_cmd age-keygen
 if [[ -f "${AGE_KEY}" ]]; then
     ok "Age key already exists"
 else
-    age-keygen -o "${AGE_KEY}" 2>/dev/null
+    age-keygen -o "${AGE_KEY}"
     chmod 600 "${AGE_KEY}"
     ok "Generated ${AGE_KEY} ($(elapsed))"
 fi
@@ -223,6 +230,8 @@ if [[ ! -f "${COMPOSE_ENV}" ]]; then
     FOREMAN_ADMIN_PASSWORD=$(gen_password)
     KATELLO_PG_PASSWORD=$(gen_password)
 
+    [[ -f "${COMPOSE_ENV_EXAMPLE}" ]] || \
+        die "Missing ${COMPOSE_ENV_EXAMPLE} — prophet-platform clone may be incomplete or the compose layout changed"
     cp "${COMPOSE_ENV_EXAMPLE}" "${COMPOSE_ENV}"
     sed -i "s|^FOREMAN_ADMIN_PASSWORD=.*|FOREMAN_ADMIN_PASSWORD=${FOREMAN_ADMIN_PASSWORD}|" "${COMPOSE_ENV}"
     sed -i "s|^KATELLO_PG_PASSWORD=.*|KATELLO_PG_PASSWORD=${KATELLO_PG_PASSWORD}|" "${COMPOSE_ENV}"
@@ -390,10 +399,12 @@ step 11 "nixos-rebuild switch — pass 2 (live config: secrets, signing key, har
 
 info "Activating final configuration..."
 PASS2_LOG="/tmp/sourceos-enroll-pass2-$(date +%s).log"
+set +e
 nixos-rebuild switch --flake "${REPO_ROOT}#${HOST}" --impure 2>&1 | \
     tee "${PASS2_LOG}" | \
-    grep --line-buffered -E '(building|fetching|error|warning|Error|FAILED|activating)' || true
+    grep --line-buffered -E '(building|fetching|error|warning|Error|FAILED|activating)'
 NB2_EXIT=${PIPESTATUS[0]}
+set -e
 [[ $NB2_EXIT -eq 0 ]] || die "Pass 2 rebuild failed (exit ${NB2_EXIT}). Full log: ${PASS2_LOG}
     Check: journalctl -xe | tail -50
     The previous generation (pass 1) is still bootable via the systemd-boot menu."
