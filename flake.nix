@@ -15,9 +15,17 @@
       url = "github:SocioProphet/lampstand";
       flake = false;
     };
+    sourceos-syncd-src = {
+      url = "github:SourceOS-Linux/sourceos-syncd";
+      flake = false;
+    };
+    sourceos-boot-src = {
+      url = "github:SourceOS-Linux/sourceos-boot";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, nixos-apple-silicon, sops-nix, lampstand-src }:
+  outputs = { self, nixpkgs, nixos-apple-silicon, sops-nix, lampstand-src, sourceos-syncd-src, sourceos-boot-src }:
     let
       lib = nixpkgs.lib;
       systems = [ "x86_64-linux" "aarch64-linux" ];
@@ -33,6 +41,12 @@
           meshd-exitd = pkgs.callPackage ./packages/mesh/meshd-exitd.nix { };
           lampstand = pkgs.callPackage ./packages/search/lampstand.nix {
             inherit lampstand-src;
+          };
+          sourceos-syncd = pkgs.callPackage ./packages/sourceos-syncd/default.nix {
+            inherit sourceos-syncd-src;
+          };
+          sourceos-boot = pkgs.callPackage ./packages/sourceos-boot/default.nix {
+            inherit sourceos-boot-src;
           };
           default = meshd;
         });
@@ -84,9 +98,18 @@
       };
 
       nixosConfigurations = {
-        builder-aarch64 = lib.nixosSystem {
+        builder-aarch64 =
+          let
+            pkgs-aarch64 = nixpkgs.legacyPackages.aarch64-linux;
+            syncdPkg = pkgs-aarch64.callPackage ./packages/sourceos-syncd/default.nix {
+              inherit sourceos-syncd-src;
+            };
+            bootPkg = pkgs-aarch64.callPackage ./packages/sourceos-boot/default.nix {
+              inherit sourceos-boot-src;
+            };
+          in lib.nixosSystem {
           system = "aarch64-linux";
-          specialArgs = { inherit self; };
+          specialArgs = { inherit self syncdPkg bootPkg; };
           modules = [
             nixos-apple-silicon.nixosModules.apple-silicon-support
             sops-nix.nixosModules.sops
@@ -156,6 +179,10 @@
           meshd-linkd-package = self.packages.${system}.meshd-linkd;
           meshd-exitd-package = self.packages.${system}.meshd-exitd;
           lampstand-package = self.packages.${system}.lampstand;
+          sourceos-syncd-package = self.packages.${system}.sourceos-syncd;
+          sourceos-boot-package = self.packages.${system}.sourceos-boot;
+          sourceos-syncd-package-contract = import ./tests/sourceos-syncd-package-contract.nix { inherit pkgs; };
+          sourceos-boot-package-contract = import ./tests/sourceos-boot-package-contract.nix { inherit pkgs; };
         });
 
       sourceos = {

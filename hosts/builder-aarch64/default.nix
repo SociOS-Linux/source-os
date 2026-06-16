@@ -1,4 +1,4 @@
-{ config, lib, pkgs, self, ... }:
+{ config, lib, pkgs, self, syncdPkg, bootPkg, ... }:
 {
   imports = [
     ../../profiles/linux-dev/default.nix
@@ -68,9 +68,8 @@
   # Password loaded via SOPS-managed secret (not committed to repo).
   sourceos.syncd = {
     enable = true;
-    # package and sourceosBoot.package must point to built derivations.
-    # These are set below as overrides once the package derivations exist.
-    # For now, use placeholder that will be replaced with the real package.
+    package = syncdPkg;
+    sourceosBoot.package = bootPkg;
     katelloUrl = "https://127.0.0.1:8443";
     lifecycleEnv = "stable";
     locus = "local";
