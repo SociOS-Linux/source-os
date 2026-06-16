@@ -253,9 +253,14 @@ if [[ ! -d "${PROPHET_PLATFORM_ROOT}" ]]; then
     info "Cloning prophet-platform..."
     mkdir -p "$(dirname "${PROPHET_PLATFORM_ROOT}")" || \
         die "Cannot create $(dirname "${PROPHET_PLATFORM_ROOT}") — check disk and permissions"
-    git clone git@github.com:SocioProphet/prophet-platform.git "${PROPHET_PLATFORM_ROOT}" 2>/dev/null || \
+    # SSH clone suppresses stderr so failures are silent. If SSH fails and leaves a
+    # partial directory, the HTTPS fallback would fail with "already exists" — so
+    # remove any partial clone before falling back.
+    git clone git@github.com:SocioProphet/prophet-platform.git "${PROPHET_PLATFORM_ROOT}" 2>/dev/null || {
+        rm -rf "${PROPHET_PLATFORM_ROOT}"
         git clone https://github.com/SocioProphet/prophet-platform.git "${PROPHET_PLATFORM_ROOT}" || \
-        die "Failed to clone prophet-platform. Check network and GitHub access (SSH key or HTTPS)."
+            die "Failed to clone prophet-platform. Check network and GitHub access (SSH key or HTTPS)."
+    }
 fi
 
 if [[ ! -f "${COMPOSE_ENV}" ]]; then
@@ -319,7 +324,10 @@ _KATELLO_RUNNING=$(docker ps --filter "name=katello" --format "{{.Names}}" 2>/de
 info "Containers started (${_KATELLO_RUNNING} katello container(s) running). Waiting for foreman-installer (10-15 min)..."
 info "Follow: docker-compose -f ${COMPOSE_FILE} logs -f foreman-katello"
 
-MAX_WAIT="${FOREMAN_WAIT_TIMEOUT:-1800}"; ELAPSED=0; INTERVAL=15
+MAX_WAIT="${FOREMAN_WAIT_TIMEOUT:-1800}"
+[[ "${MAX_WAIT}" =~ ^[0-9]+$ ]] || \
+    die "FOREMAN_WAIT_TIMEOUT must be a positive integer (got: '${MAX_WAIT}')"
+ELAPSED=0; INTERVAL=15
 while ! docker exec katello-foreman test -f /var/lib/foreman/.sourceos-initialized 2>/dev/null; do
     sleep $INTERVAL; ELAPSED=$((ELAPSED + INTERVAL))
     # Detect container crash immediately — without this, a crashed container causes
@@ -377,18 +385,22 @@ else
 fi
 
 if [[ "${_needs_encrypt}" -eq 1 ]]; then
+    # Create both temp files and set a single combined trap before writing anything.
+    # Two separate traps (first PLAINTEXT, then adding _SECRETS_TMP) leave a window
+    # between mktemp and the second trap where _SECRETS_TMP is not covered on exit.
     PLAINTEXT=$(mktemp /tmp/sourceos-secrets-XXXXXX.yaml)
-    trap "rm -f ${PLAINTEXT}" EXIT
-    printf 'katello-password: "%s"\n' "${KATELLO_PASSWORD}" > "${PLAINTEXT}"
     # Write to a temp file on the same filesystem so the final mv is atomic.
     # A plain `> ${SECRETS_YAML}` would truncate the file before sops runs;
     # if sops then fails the file is empty and subsequent re-runs skip encryption.
     _SECRETS_TMP=$(mktemp "${SOURCEOS_DIR}/secrets-XXXXXX.yaml.tmp")
     chmod 600 "${_SECRETS_TMP}"
     trap "rm -f ${PLAINTEXT} ${_SECRETS_TMP}" EXIT
-    SOPS_AGE_RECIPIENTS="${AGE_PUBKEY}" sops --encrypt "${PLAINTEXT}" > "${_SECRETS_TMP}"
+    printf 'katello-password: "%s"\n' "${KATELLO_PASSWORD}" > "${PLAINTEXT}"
+    SOPS_AGE_RECIPIENTS="${AGE_PUBKEY}" sops --encrypt "${PLAINTEXT}" > "${_SECRETS_TMP}" || \
+        die "sops --encrypt failed — check AGE_PUBKEY format and sops version.
+    AGE_PUBKEY: ${AGE_PUBKEY}"
     [[ -s "${_SECRETS_TMP}" ]] || \
-        die "sops --encrypt produced empty output — check AGE_PUBKEY format and sops version"
+        die "sops --encrypt exited 0 but produced empty output — check AGE_PUBKEY format and sops version"
     mv "${_SECRETS_TMP}" "${SECRETS_YAML}"
     # mv preserves permissions from _SECRETS_TMP (already 600 via umask 077).
     rm -f "${PLAINTEXT}"; trap - EXIT
@@ -410,9 +422,10 @@ elif [[ -f "${HARMONIA_KEY}" || -f "${HARMONIA_PUB}" ]]; then
       sudo bash scripts/enroll.sh"
 else
     # nix-store --generate-binary-cache-key <name> <secret-key-file> <public-key-file>
-    nix-store --generate-binary-cache-key "builder-aarch64-1" "${HARMONIA_KEY}" "${HARMONIA_PUB}"
+    nix-store --generate-binary-cache-key "builder-aarch64-1" "${HARMONIA_KEY}" "${HARMONIA_PUB}" || \
+        die "nix-store --generate-binary-cache-key failed — check nix installation and disk space on ${SOURCEOS_DIR}"
     [[ -s "${HARMONIA_KEY}" && -s "${HARMONIA_PUB}" ]] || \
-        die "nix-store --generate-binary-cache-key produced empty key file(s)
+        die "nix-store --generate-binary-cache-key exited 0 but produced empty key file(s).
         Remove and re-run: rm -f ${HARMONIA_KEY} ${HARMONIA_PUB} && sudo bash scripts/enroll.sh"
     chmod 600 "${HARMONIA_KEY}"
     ok "Generated harmonia signing key ($(elapsed))"
@@ -439,8 +452,10 @@ elif [[ -f "${MINISIGN_PUB}" || -f "${MINISIGN_SEC}" ]]; then
       rm -f ${MINISIGN_PUB} ${MINISIGN_SEC}
       sudo bash scripts/enroll.sh"
 else
-    info "Generating minisign key pair (no passphrase — press Enter twice if prompted)..."
-    minisign -G -p "${MINISIGN_PUB}" -s "${MINISIGN_SEC}" -W
+    info "Generating minisign key pair (no passphrase)..."
+    # Redirect stdin from /dev/null: if an older minisign binary ignores -W and
+    # prompts for a passphrase, it receives EOF immediately instead of hanging.
+    minisign -G -p "${MINISIGN_PUB}" -s "${MINISIGN_SEC}" -W < /dev/null
     chmod 600 "${MINISIGN_SEC}"
     ok "Generated ${MINISIGN_PUB} ($(elapsed))"
 fi
