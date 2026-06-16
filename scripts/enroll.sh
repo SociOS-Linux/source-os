@@ -261,8 +261,18 @@ if [[ ! -f "${COMPOSE_ENV}" ]]; then
     # syscall. A plain `cp` followed by `chmod 600` leaves a window where the
     # file (containing plaintext passwords) is world-readable.
     install -m 600 "${COMPOSE_ENV_EXAMPLE}" "${COMPOSE_ENV}"
+    # Verify the expected keys exist before substituting — if the template
+    # changes to use different key names, sed exits 0 silently with no change
+    # and Foreman boots with the example placeholder passwords.
+    grep -q '^FOREMAN_ADMIN_PASSWORD=' "${COMPOSE_ENV}" || \
+        die "FOREMAN_ADMIN_PASSWORD key missing from ${COMPOSE_ENV_EXAMPLE} — template may have changed"
+    grep -q '^KATELLO_PG_PASSWORD=' "${COMPOSE_ENV}" || \
+        die "KATELLO_PG_PASSWORD key missing from ${COMPOSE_ENV_EXAMPLE} — template may have changed"
     sed -i "s|^FOREMAN_ADMIN_PASSWORD=.*|FOREMAN_ADMIN_PASSWORD=${FOREMAN_ADMIN_PASSWORD}|" "${COMPOSE_ENV}"
     sed -i "s|^KATELLO_PG_PASSWORD=.*|KATELLO_PG_PASSWORD=${KATELLO_PG_PASSWORD}|" "${COMPOSE_ENV}"
+    # Confirm the substitution actually landed — paranoia against sed edge cases.
+    grep -q "^FOREMAN_ADMIN_PASSWORD=${FOREMAN_ADMIN_PASSWORD}" "${COMPOSE_ENV}" || \
+        die "sed failed to set FOREMAN_ADMIN_PASSWORD in ${COMPOSE_ENV}"
 
     # Atomic write: if the script is killed mid-write the file stays absent
     # rather than being empty, so a re-run regenerates it rather than reading
@@ -278,6 +288,11 @@ KATELLO_PASSWORD=$(cat "${KATELLO_ADMIN_PW_FILE}")
 [[ -n "${KATELLO_PASSWORD}" ]] || \
     die "Katello password file is empty: ${KATELLO_ADMIN_PW_FILE}
     Regenerate: rm -f ${KATELLO_ADMIN_PW_FILE} ${COMPOSE_ENV} && sudo bash scripts/enroll.sh"
+
+[[ -f "${COMPOSE_FILE}" ]] || \
+    die "docker-compose file not found: ${COMPOSE_FILE}
+    The prophet-platform repo layout may have changed.
+    Check: ls $(dirname "${COMPOSE_FILE}")"
 
 docker-compose -f "${COMPOSE_FILE}" --env-file "${COMPOSE_ENV}" up -d
 
@@ -327,11 +342,9 @@ require_cmd sops
 
 _needs_encrypt=0
 if [[ -f "${SECRETS_YAML}" ]]; then
-    if python3 -c "
-import json, sys
-d = open('${SECRETS_YAML}').read()
-if 'sops' not in d: sys.exit(1)
-" 2>/dev/null; then
+    # grep for the sops metadata top-level key rather than a python substring
+    # search — a YAML comment containing the word 'sops' would fool the old check.
+    if grep -q '^sops:' "${SECRETS_YAML}" 2>/dev/null; then
         ok "secrets.yaml already SOPS-encrypted"
     else
         warn "secrets.yaml exists but is not encrypted — re-encrypting"
@@ -425,8 +438,11 @@ info "Signing public key: ${SIGNING_PUBKEY}"
 cat > "${MINISIGN_CACHE_INFO}.tmp" <<EOF
 StoreDir: /nix/store
 WantMassQuery: 1
-Priority: 40
+Priority: 30
 EOF
+# Priority 30 < 40 (cache.nixos.org default) — lower number = higher priority.
+# This ensures nix prefers the local harmonia cache over the remote when both
+# are configured as substituters.
 mv "${MINISIGN_CACHE_INFO}.tmp" "${MINISIGN_CACHE_INFO}"
 
 minisign -S -s "${MINISIGN_SEC}" -m "${MINISIGN_CACHE_INFO}" -x "${MINISIGN_CACHE_INFO_SIG}" \
@@ -453,8 +469,11 @@ step 10 "Build NixOS closure + push to harmonia cache"
 
 info "Building builder-aarch64 system closure..."
 BUILD_LOG="/tmp/sourceos-enroll-nix-build-$(date +%s).log"
+info "Build log: ${BUILD_LOG}  (tail -f ${BUILD_LOG} in another terminal to follow)"
+# head -1 guards against multi-output derivations: --print-out-paths prints one
+# path per output; command substitution would embed a newline making -e fail.
 CLOSURE=$(nix build "${REPO_ROOT}#nixosConfigurations.${HOST}.config.system.build.toplevel" \
-    --no-link --print-out-paths 2>"${BUILD_LOG}")
+    --no-link --print-out-paths 2>"${BUILD_LOG}" | head -1)
 # nix build emits errors only to stderr (captured to BUILD_LOG above).
 # Verify stdout produced a non-empty, existing store path.
 [[ -n "${CLOSURE}" && -e "${CLOSURE}" ]] || \
@@ -506,12 +525,20 @@ for _i in {1..12}; do
     sleep 5
 done
 if [[ $_HARM_UP -eq 1 ]]; then
+    # Push the active system (CURRENT_GEN) first — it may differ from CLOSURE if
+    # nixos-rebuild fetched a cached derivation with a different hash. Without this,
+    # the running system would not be in harmonia after enrollment.
+    if [[ -n "${CURRENT_GEN}" && "${CURRENT_GEN}" != "${CLOSURE}" ]]; then
+        nix copy --to "http://127.0.0.1:8101?compression=zstd" "${CURRENT_GEN}" && \
+            ok "Active system pushed to harmonia cache" || \
+            warn "nix copy (active gen) failed — run: nix copy --to 'http://127.0.0.1:8101?compression=zstd' ${CURRENT_GEN}"
+    fi
     nix copy --to "http://127.0.0.1:8101?compression=zstd" "${CLOSURE}" && \
-        ok "Closure pushed to harmonia cache" || \
+        ok "Step-10 closure pushed to harmonia cache" || \
         warn "nix copy failed — run manually: nix copy --to 'http://127.0.0.1:8101?compression=zstd' ${CLOSURE}"
 else
     warn "harmonia not responding on :8101 after 60s — push manually after it starts"
-    warn "  nix copy --to 'http://127.0.0.1:8101?compression=zstd' ${CLOSURE}"
+    warn "  nix copy --to 'http://127.0.0.1:8101?compression=zstd' ${CURRENT_GEN:-${CLOSURE}}"
 fi
 
 # Promote content view to stable so sourceos-syncd can pick it up
@@ -570,15 +597,22 @@ else
     HEALTHY=0
 fi
 
-# sops-nix-activate is a oneshot: it stays in 'failed' state (not 'inactive')
-# when decryption fails. Distinguish "still starting" from "sops blew up".
+# Check sops-nix activation by testing for the decrypted secret file rather
+# than by service state alone. `is-failed` exits 1 (not-failed) if the unit
+# doesn't exist, producing a false "ok" even when sops-nix isn't configured.
+# The actual secret path is the ground truth.
+_SOPS_SECRET="/run/secrets/katello-password"
 if systemctl is-failed --quiet sops-nix-activate 2>/dev/null; then
     warn "sops-nix-activate FAILED — secrets not decrypted; sourceos-syncd will not start"
     warn "  Diagnose: journalctl -u sops-nix-activate | tail -30"
     warn "  Common cause: age key mismatch — re-run: rm -f ${SECRETS_YAML} && sudo bash scripts/enroll.sh"
     HEALTHY=0
+elif [[ -f "${_SOPS_SECRET}" ]]; then
+    ok "sops-nix-activate: ok — secret present at ${_SOPS_SECRET}"
 else
-    ok "sops-nix-activate: ok (secrets decrypted)"
+    warn "sops-nix-activate: secret not at ${_SOPS_SECRET} — may still be activating"
+    warn "  Diagnose: journalctl -u sops-nix-activate | tail -20"
+    HEALTHY=0
 fi
 
 # Verify Katello containers are still running after the long enrollment.
