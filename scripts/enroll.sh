@@ -145,6 +145,8 @@ ok   "Preflight passed ($(elapsed))"
 
 step 1 "Hardware configuration"
 
+rm -f "${HW_CONFIG}.tmp"  # clean up any stale temp from a previous interrupted run
+
 if [[ -f "${HW_CONFIG}" ]]; then
     ok "hardware-configuration.nix already present"
 else
@@ -354,6 +356,9 @@ else
 fi
 
 SIGNING_PUBKEY=$(grep -v '^untrusted comment' "${MINISIGN_PUB}" | head -1)
+[[ -n "${SIGNING_PUBKEY}" ]] || \
+    die "minisign public key file is empty or malformed: ${MINISIGN_PUB}
+    Delete and re-run: rm -f ${MINISIGN_PUB} ${MINISIGN_SEC} && sudo bash scripts/enroll.sh"
 info "Signing public key: ${SIGNING_PUBKEY}"
 
 # Write nix-cache-info and sign it. nginx serves the .minisig file alongside
@@ -380,13 +385,14 @@ ok "enroll.nix written — no Nix file patching needed ($(elapsed))"
 step 10 "Build NixOS closure + push to harmonia cache"
 
 info "Building builder-aarch64 system closure..."
+BUILD_LOG="/tmp/sourceos-enroll-nix-build-$(date +%s).log"
 CLOSURE=$(nix build "${REPO_ROOT}#nixosConfigurations.${HOST}.config.system.build.toplevel" \
-    --no-link --print-out-paths 2>/dev/null)
-# nix build returns empty stdout on failure (errors go to stderr). Verify both that
-# CLOSURE is non-empty and that the path actually exists in the Nix store.
+    --no-link --print-out-paths 2>"${BUILD_LOG}")
+# nix build emits errors only to stderr (captured to BUILD_LOG above).
+# Verify stdout produced a non-empty, existing store path.
 [[ -n "${CLOSURE}" && -e "${CLOSURE}" ]] || \
-    die "nix build failed — retry with:
-    nix build ${REPO_ROOT}#nixosConfigurations.${HOST}.config.system.build.toplevel --no-link --show-trace"
+    die "nix build failed. Build log: ${BUILD_LOG}
+    For full trace: nix build ${REPO_ROOT}#nixosConfigurations.${HOST}.config.system.build.toplevel --no-link --show-trace"
 ok "Built: ${CLOSURE}"
 
 # Harmonia must be running before we can push (it starts after pass-2 rebuild).
