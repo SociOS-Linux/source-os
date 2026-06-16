@@ -214,8 +214,13 @@ else
     # Capture stdout so the write is atomic: age-keygen -o FILE truncates before
     # writing, leaving a corrupt partial file if interrupted. Stdout capture +
     # mv means re-runs see no file (and regenerate) rather than a corrupt one.
-    age-keygen 2>/dev/null > "${AGE_KEY}.tmp"
-    [[ -s "${AGE_KEY}.tmp" ]] || die "age-keygen produced empty output — check age installation"
+    # 2>/dev/null suppresses the "Public key: age1..." diagnostic age-keygen
+    # prints to stderr on every successful run (we re-print it via info below).
+    # || die is essential: with 2>/dev/null and set -e, a failure would produce
+    # zero output — the error is suppressed and set -e exits silently.
+    age-keygen 2>/dev/null > "${AGE_KEY}.tmp" || \
+        die "age-keygen failed — check age installation and that /dev/urandom is readable"
+    [[ -s "${AGE_KEY}.tmp" ]] || die "age-keygen exited 0 but produced empty output — check age installation"
     mv "${AGE_KEY}.tmp" "${AGE_KEY}"
     chmod 600 "${AGE_KEY}"
     ok "Generated ${AGE_KEY} ($(elapsed))"
@@ -265,11 +270,12 @@ fi
 
 if [[ ! -f "${COMPOSE_ENV}" ]]; then
     info "Generating Foreman+Katello .env (random passwords)..."
-    FOREMAN_ADMIN_PASSWORD=$(gen_password)
-    KATELLO_PG_PASSWORD=$(gen_password)
-
+    # Check template exists before generating passwords — fail fast before
+    # spending entropy on passwords that would be discarded by the die below.
     [[ -f "${COMPOSE_ENV_EXAMPLE}" ]] || \
         die "Missing ${COMPOSE_ENV_EXAMPLE} — prophet-platform clone may be incomplete or the compose layout changed"
+    FOREMAN_ADMIN_PASSWORD=$(gen_password)
+    KATELLO_PG_PASSWORD=$(gen_password)
     # install -m 600 is atomic: creates the file with correct permissions in one
     # syscall. A plain `cp` followed by `chmod 600` leaves a window where the
     # file (containing plaintext passwords) is world-readable.
@@ -312,7 +318,8 @@ KATELLO_PASSWORD=$(cat "${KATELLO_ADMIN_PW_FILE}")
     The prophet-platform repo layout may have changed.
     Check: ls $(dirname "${COMPOSE_FILE}")"
 
-docker-compose -f "${COMPOSE_FILE}" --env-file "${COMPOSE_ENV}" up -d
+docker-compose -f "${COMPOSE_FILE}" --env-file "${COMPOSE_ENV}" up -d || \
+    die "docker-compose up -d failed. Diagnose: docker-compose -f ${COMPOSE_FILE} --env-file ${COMPOSE_ENV} logs"
 
 # Verify that compose actually started containers — `up -d` exits 0 even if
 # containers crash-loop immediately. Count running containers for this project.
@@ -431,7 +438,9 @@ else
     ok "Generated harmonia signing key ($(elapsed))"
 fi
 
-HARMONIA_PUBKEY=$(cat "${HARMONIA_PUB}")
+HARMONIA_PUBKEY=$(cat "${HARMONIA_PUB}") || \
+    die "Cannot read harmonia public key: ${HARMONIA_PUB} — check permissions and disk.
+    Delete both and re-run: rm -f ${HARMONIA_KEY} ${HARMONIA_PUB} && sudo bash scripts/enroll.sh"
 [[ -n "${HARMONIA_PUBKEY}" ]] || \
     die "harmonia public key file is empty or malformed: ${HARMONIA_PUB}
     Delete both and re-run: rm -f ${HARMONIA_KEY} ${HARMONIA_PUB} && sudo bash scripts/enroll.sh"
@@ -456,6 +465,8 @@ else
     # Redirect stdin from /dev/null: if an older minisign binary ignores -W and
     # prompts for a passphrase, it receives EOF immediately instead of hanging.
     minisign -G -p "${MINISIGN_PUB}" -s "${MINISIGN_SEC}" -W < /dev/null
+    [[ -s "${MINISIGN_PUB}" && -s "${MINISIGN_SEC}" ]] || \
+        die "minisign -G exited 0 but did not produce key files — check disk space on ${SOURCEOS_DIR}"
     chmod 600 "${MINISIGN_SEC}"
     ok "Generated ${MINISIGN_PUB} ($(elapsed))"
 fi
