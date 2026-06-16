@@ -78,13 +78,26 @@ $HAMMER content-view add-repository --organization "${ORG}" \
     --repository "sourceos-closures-aarch64" \
     2>/dev/null || echo "  sourceos-closures-aarch64 already in view"
 
-# Publish version 1.0 to Library
-echo "--- publishing content view (this may take a minute)"
-$HAMMER content-view publish --organization "${ORG}" \
-    --name "sourceos-builder-aarch64" \
-    --description "Initial publish — dev channel bootstrap"
+# Publish version 1.0 to Library — skip if any version already exists.
+# Re-running katello-sourceos-setup.sh (e.g. during enroll.sh retry) must not
+# create a new CV version: publishing is slow (1-2 min) and the extra versions
+# are noise that complicates CV_VERSION selection in subsequent steps.
+echo "--- checking content view publish state"
+EXISTING_CV_VERSIONS=$($HAMMER --output json content-view version list \
+    --organization "${ORG}" \
+    --content-view "sourceos-builder-aarch64" 2>/dev/null | \
+    python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
 
-# Promote to dev lifecycle environment
+if [[ "${EXISTING_CV_VERSIONS}" -eq 0 ]]; then
+    echo "--- publishing content view (this may take a minute)"
+    $HAMMER content-view publish --organization "${ORG}" \
+        --name "sourceos-builder-aarch64" \
+        --description "Initial publish — dev channel bootstrap"
+else
+    echo "  content view already has ${EXISTING_CV_VERSIONS} version(s) — skipping publish"
+fi
+
+# Promote to dev lifecycle environment (idempotent — hammer returns 0 if already promoted)
 echo "--- promoting to dev"
 CV_VERSION=$($HAMMER --output json content-view version list \
     --organization "${ORG}" \
