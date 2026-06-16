@@ -3,13 +3,17 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixos-apple-silicon = {
+      url = "github:tpwrules/nixos-apple-silicon";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     lampstand-src = {
       url = "github:SocioProphet/lampstand";
       flake = false;
     };
   };
 
-  outputs = { self, nixpkgs, lampstand-src }:
+  outputs = { self, nixpkgs, nixos-apple-silicon, lampstand-src }:
     let
       lib = nixpkgs.lib;
       systems = [ "x86_64-linux" "aarch64-linux" ];
@@ -75,7 +79,10 @@
         builder-aarch64 = lib.nixosSystem {
           system = "aarch64-linux";
           specialArgs = { inherit self; };
-          modules = [ ./hosts/builder-aarch64/default.nix ];
+          modules = [
+            nixos-apple-silicon.nixosModules.apple-silicon-support
+            ./hosts/builder-aarch64/default.nix
+          ];
         };
 
         canary-x86_64 = lib.nixosSystem {
