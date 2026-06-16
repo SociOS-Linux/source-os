@@ -75,12 +75,17 @@
           };
         });
 
+      nixosModules = {
+        sourceos-syncd = import ./modules/nixos/sourceos-syncd/default.nix;
+      };
+
       nixosConfigurations = {
         builder-aarch64 = lib.nixosSystem {
           system = "aarch64-linux";
           specialArgs = { inherit self; };
           modules = [
             nixos-apple-silicon.nixosModules.apple-silicon-support
+            self.nixosModules.sourceos-syncd
             ./hosts/builder-aarch64/default.nix
           ];
         };

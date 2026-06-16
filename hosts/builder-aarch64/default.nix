@@ -51,5 +51,26 @@
 
   security.sudo.wheelNeedsPassword = false;
 
+  # sourceos-syncd daemon: polls local Katello (127.0.0.1:8443) every 5 min
+  # and applies new content view versions automatically.
+  # katelloPassword is loaded from the SOPS-managed secrets file at runtime;
+  # set sourceos.syncd.katelloPasswordFile before activating.
+  sourceos.syncd = {
+    enable = true;
+    katelloUrl = "https://127.0.0.1:8443";
+    lifecycleEnv = "stable";
+    locus = "local";
+    flakeRef = "github:SociOS-Linux/source-os#builder-aarch64";
+    pollInterval = 300;
+    noVerifySsl = true;  # local self-signed cert; disable when real cert is provisioned
+    healthCheck = {
+      enable = true;
+      delayAfterBootSec = 120;
+      rollbackOnFailure = true;
+    };
+    # katelloPasswordFile = "/run/secrets/katello-password";
+    # Set katelloPasswordFile (via sops-nix) before first activation.
+  };
+
   system.stateVersion = "25.05";
 }
