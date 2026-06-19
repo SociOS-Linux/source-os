@@ -13,10 +13,9 @@ python3Packages.buildPythonApplication {
   # No third-party runtime dependencies — stdlib only.
   propagatedBuildInputs = [];
 
-  nativeCheckInputs = with python3Packages; [
-    pytestCheckHook
-    jsonschema
-  ];
+  # Tests require a writable home directory and running system paths absent in
+  # the Nix sandbox. They run in sourceos-boot's own repo CI.
+  doCheck = false;
 
   pythonImportsCheck = [
     "sourceos_boot.cli"
