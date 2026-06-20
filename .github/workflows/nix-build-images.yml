@@ -148,12 +148,12 @@ jobs:
 
       - name: Install Nix if not present
         run: |
-          if ! command -v nix &>/dev/null; then
+          NIX_BIN=/nix/var/nix/profiles/default/bin/nix
+          if ! "$NIX_BIN" --version &>/dev/null 2>&1; then
             export HOME=/root
-            groupadd -r nixbld 2>/dev/null || true
-            for n in $(seq 1 32); do
-              useradd -r -g nixbld -d /var/empty -s /sbin/nologin "nixbld${n}" 2>/dev/null || true
-            done
+            # Remove partial nixbld group/users from any previous failed install
+            for n in $(seq 1 32); do userdel "nixbld${n}" 2>/dev/null || true; done
+            groupdel nixbld 2>/dev/null || true
             curl -fsSL https://nixos.org/nix/install | sudo sh -s -- --daemon --yes
             sudo systemctl start nix-daemon.service || true
             sleep 5
@@ -162,7 +162,7 @@ jobs:
           sudo systemctl restart nix-daemon.service || true
           . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || true
           echo "/nix/var/nix/profiles/default/bin" >> "$GITHUB_PATH"
-          nix --version
+          "$NIX_BIN" --version
 
       - name: Build builder-aarch64 system toplevel
         run: |
