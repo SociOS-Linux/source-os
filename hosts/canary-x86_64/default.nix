@@ -6,6 +6,9 @@
 
   networking.hostName = "canary-x86_64";
 
+  # Cloud/VM target — boot and filesystems managed by the platform image.
+  boot.isContainer = true;
+
   sourceos.build = {
     role = "canary-x86_64";
     channel = "candidate";

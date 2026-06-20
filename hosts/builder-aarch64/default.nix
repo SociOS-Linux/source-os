@@ -35,14 +35,21 @@
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  # cache.nixos.org plus the local harmonia cache.
+  # cache.nixos.org, nixos-apple-silicon pre-built kernels, local harmonia.
   # The harmonia signing key is added via enroll.nix after enrollment.
+  nix.settings.extra-substituters = [
+    "https://cache.nixos.org"
+    "https://nixos-apple-silicon.cachix.org"
+    "http://127.0.0.1:8101"
+  ];
   nix.settings.trusted-substituters = [
     "https://cache.nixos.org"
+    "https://nixos-apple-silicon.cachix.org"
     "http://127.0.0.1:8101"
   ];
   nix.settings.trusted-public-keys = [
     "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+    "nixos-apple-silicon.cachix.org-1:8psDu5SA5dAD7qA0zMy5UT292TxeEPzIz8VVEr2Js20="
     # device-specific harmonia key appended by enroll.nix
   ];
 

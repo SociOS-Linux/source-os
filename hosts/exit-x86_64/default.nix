@@ -1,4 +1,4 @@
-{ self, pkgs, syncdPkg, bootPkg, config, ... }:
+{ self, lib, pkgs, syncdPkg, bootPkg, config, ... }:
 {
   imports = [
     ../../profiles/linux-stable/default.nix
@@ -6,13 +6,16 @@
 
   networking.hostName = "exit-x86_64";
 
+  # Cloud/VM target — boot and filesystems managed by the platform image.
+  boot.isContainer = true;
+
   sourceos.build = {
     role = "exit-x86_64";
     channel = "stable";
   };
 
   sourceos.mesh = {
-    role = "exit";
+    role = lib.mkForce "exit";
     runtime = {
       enable = true;
       meshdPackage = self.packages.${pkgs.system}.meshd;

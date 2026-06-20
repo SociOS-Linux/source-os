@@ -6,6 +6,9 @@
 
   networking.hostName = "stable-x86_64";
 
+  # Cloud/VM target — boot and filesystems managed by the platform image.
+  boot.isContainer = true;
+
   sourceos.build = {
     role = "stable-x86_64";
     channel = "stable";
