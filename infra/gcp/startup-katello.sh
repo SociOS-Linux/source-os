@@ -25,12 +25,11 @@ fi
 
 # --- Hostname ---
 echo "[1/4] Setting hostname..."
-hostnamectl set-hostname katello.sourceos.internal
-INTERNAL_IP=$(curl -sf -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip)
-sed -i "/katello.sourceos.internal/d" /etc/hosts
-echo "${INTERNAL_IP}  katello.sourceos.internal katello" >> /etc/hosts
-echo "  Done (IP: ${INTERNAL_IP})."
+# Use the GCP-assigned FQDN so forward+reverse DNS are consistent (foreman pre-flight requires this)
+GCP_FQDN=$(curl -sf -H "Metadata-Flavor: Google" \
+  http://metadata.google.internal/computeMetadata/v1/instance/hostname)
+hostnamectl set-hostname "$GCP_FQDN"
+echo "  Done (FQDN: ${GCP_FQDN})."
 
 # --- Repos ---
 echo "[2/4] Installing Foreman/Katello repos..."
