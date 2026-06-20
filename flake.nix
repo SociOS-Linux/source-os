@@ -65,7 +65,6 @@
             "dua" "dust" "kondo"
             "glow" "hyperfine" "entr" "curlie"
             "rclone" "rsync" "minio-client"
-            "albert"
           ];
 
           haveAttr = n: builtins.hasAttr n pkgs;
