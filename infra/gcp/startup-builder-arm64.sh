@@ -45,10 +45,25 @@ if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
   . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 fi
 
-# Determinate Systems installs nix here; ensure it's on PATH regardless of sourcing
-export PATH="/nix/var/nix/profiles/default/bin:${PATH}"
-NIX_CMD="/nix/var/nix/profiles/default/bin/nix"
-[[ -x "$NIX_CMD" ]] || { echo "ERROR: nix binary not found at $NIX_CMD"; exit 1; }
+# Find nix — Determinate Systems puts it in various places depending on platform/version
+NIX_CMD=""
+for _candidate in \
+    "/nix/var/nix/profiles/default/bin/nix" \
+    "/root/.nix-profile/bin/nix" \
+    "/usr/local/bin/nix" \
+    "/nix/nix"; do
+  [[ -x "$_candidate" ]] && NIX_CMD="$_candidate" && break
+done
+[[ -z "$NIX_CMD" ]] && NIX_CMD="$(command -v nix 2>/dev/null || true)"
+if [[ -z "$NIX_CMD" ]]; then
+  # Give the daemon a moment to create profile symlinks, then retry
+  systemctl restart nix-daemon.service 2>/dev/null || true
+  sleep 10
+  NIX_CMD="$(command -v nix 2>/dev/null || true)"
+fi
+[[ -n "$NIX_CMD" ]] || { echo "ERROR: nix binary not found after installation"; exit 1; }
+export PATH="$(dirname "$NIX_CMD"):${PATH}"
+echo "  Using nix: $NIX_CMD"
 
 # --- nix.conf ---
 echo "[3/7] Configuring /etc/nix/nix.conf..."
