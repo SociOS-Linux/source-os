@@ -51,7 +51,7 @@ echo "  Package installed."
 # --- Install ---
 echo "[4/4] Running foreman-installer --scenario katello (15-20 min)..."
 foreman-installer --scenario katello \
-  --foreman-admin-password="${ADMIN_PASSWORD}" \
+  --foreman-initial-admin-password="${ADMIN_PASSWORD}" \
   --foreman-initial-organization="SocioProphet" \
   --foreman-initial-location="GCP" \
   --foreman-proxy-dhcp=false \

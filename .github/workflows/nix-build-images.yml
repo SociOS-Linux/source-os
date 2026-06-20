@@ -133,7 +133,7 @@ jobs:
 
   build-aarch64:
     name: build builder-aarch64
-    runs-on: [self-hosted, aarch64-linux, linux]
+    runs-on: [self-hosted, aarch64-linux, Linux]
     timeout-minutes: 120
     permissions:
       contents: read
