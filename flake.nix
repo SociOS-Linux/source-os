@@ -52,6 +52,20 @@
           sourceos-boot = pkgs.callPackage ./packages/sourceos-boot/default.nix {
             inherit sourceos-boot-src;
           };
+
+          # Public installer ISO, built natively per architecture.
+          #   packages.x86_64-linux.sourceos-installer-iso  → x86_64 UEFI/BIOS ISO
+          #   packages.aarch64-linux.sourceos-installer-iso → generic ARM64 UEFI ISO
+          # (Apple Silicon uses the Asahi path, scripts/get-sourceos.sh — not this ISO.)
+          sourceos-installer-iso = nixos-generators.nixosGenerate {
+            inherit system;
+            specialArgs = { self = self; };
+            modules = [
+              (if system == "aarch64-linux" then ./images/iso-aarch64.nix else ./images/iso-x86_64.nix)
+            ];
+            format = "install-iso";
+          };
+
           default = meshd;
         } // lib.optionalAttrs (system == "x86_64-linux") (
           let
