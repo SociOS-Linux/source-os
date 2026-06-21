@@ -257,6 +257,21 @@
               mkdir -p $out
             '';
 
+          # ── Edition boot tests (Layer 1: deterministic QEMU boot, no LLM) ──
+          # nixosTests only run on Linux; on other systems expose a skip stub.
+          edition-desktop-boot =
+            if system == "x86_64-linux" || system == "aarch64-linux"
+            then import ./tests/editions/desktop-boot.nix { inherit pkgs self; }
+            else pkgs.runCommand "edition-desktop-boot-skip" {} "mkdir -p $out";
+          edition-server-boot =
+            if system == "x86_64-linux" || system == "aarch64-linux"
+            then import ./tests/editions/server-boot.nix { inherit pkgs self; }
+            else pkgs.runCommand "edition-server-boot-skip" {} "mkdir -p $out";
+          edition-edge-boot =
+            if system == "x86_64-linux" || system == "aarch64-linux"
+            then import ./tests/editions/edge-boot.nix { inherit pkgs self; }
+            else pkgs.runCommand "edition-edge-boot-skip" {} "mkdir -p $out";
+
           mesh-module-contract = import ./tests/mesh-module-contract.nix { inherit pkgs; };
           mesh-runtime-contract = import ./tests/mesh-runtime-contract.nix { inherit pkgs; };
           mesh-package-contract = import ./tests/mesh-package-contract.nix { inherit pkgs; };
