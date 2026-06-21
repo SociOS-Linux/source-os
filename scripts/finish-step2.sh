@@ -53,7 +53,7 @@ echo
 info "Detecting SourceOS APFS container on disk0..."
 
 SOURCEOS_CS=""
-for _cs in $(diskutil list disk0 2>/dev/null | awk 'match($0, /Container (disk[0-9]+)/, a){print a[1]}'); do
+for _cs in $(diskutil list disk0 2>/dev/null | grep -oE 'Container disk[0-9]+' | awk '{print $2}'); do
     if diskutil list "${_cs}" 2>/dev/null | grep -q "SourceOS"; then
         SOURCEOS_CS="${_cs}"; break
     fi
