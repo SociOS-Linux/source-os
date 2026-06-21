@@ -32,7 +32,7 @@ Therefore the next runtime move is not repo creation. The next runtime move is t
 - `content/` for draft, derived, and report layout;
 - workspace/bootstrap files, Makefile, and smoke validation;
 - contract links back to `SourceOS-Linux/sourceos-spec`;
-- Linux realization links back to `SociOS-Linux/source-os`.
+- Linux realization links back to `SourceOS-Linux/source-os`.
 
 ## What is already landed
 
@@ -157,7 +157,7 @@ Without a formal scorecard, claims drift. We need maturity lanes for:
 
 | Repository | Owns | Does not own |
 |---|---|---|
-| `SociOS-Linux/source-os` | Linux realization, workstation profile, GNOME helpers, installer, doctor/status, host/service wiring. | Product shell runtime, shared contract canon. |
+| `SourceOS-Linux/source-os` | Linux realization, workstation profile, GNOME helpers, installer, doctor/status, host/service wiring. | Product shell runtime, shared contract canon. |
 | `SourceOS-Linux/sourceos-spec` | JSON schemas, canonical examples, evidence contracts, workstation report contracts. | Linux implementation scripts or product runtime. |
 | `SourceOS-Linux/sourceos-shell` | Product/runtime shell, PDF-first document services, viewer/demo, router/docd/pdf-secure runtime. | Host profile realization or shared schema canon. |
 | `SocioProphet/agentplane` | Agent execution evidence, policy/control ingestion, run/replay artifacts. | Local workstation implementation. |

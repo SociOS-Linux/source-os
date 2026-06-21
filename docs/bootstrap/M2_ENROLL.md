@@ -57,9 +57,9 @@ grep -q 'configuration changed' /tmp/nixos-infect.log || \
 # CRITICAL: do not reboot until this succeeds. If the clone fails, fix the
 # issue (SSH key, network) and retry. Rebooting without the repo leaves you
 # with a NixOS system you can't enroll without network recovery.
-mkdir -p /opt/sourceos
-git clone git@github.com:SociOS-Linux/source-os.git /opt/sourceos/source-os || \
-  git clone https://github.com/SociOS-Linux/source-os.git /opt/sourceos/source-os || \
+mkdir -p /opt/source-os
+git clone git@github.com:SourceOS-Linux/source-os.git /opt/source-os || \
+  git clone https://github.com/SourceOS-Linux/source-os.git /opt/source-os || \
   { echo "FATAL: git clone failed. Fix network/SSH access before rebooting."; exit 1; }
 
 echo "Clone successful — safe to reboot."
@@ -84,7 +84,7 @@ uname -r        # should include "asahi"
 Run the enrollment script as root from the repo root. It is fully automated and idempotent.
 
 ```sh
-cd /opt/sourceos/source-os
+cd /opt/source-os
 sudo SOURCEOS_REPO_ROOT=$PWD bash scripts/enroll.sh
 ```
 

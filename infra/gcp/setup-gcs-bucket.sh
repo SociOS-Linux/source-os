@@ -26,7 +26,7 @@ PROJECT_NUMBER=$(gcloud projects describe "$PROJECT" --format='value(projectNumb
 gcloud iam service-accounts add-iam-policy-binding "$SA" \
   --project="$PROJECT" \
   --role=roles/iam.workloadIdentityUser \
-  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/attribute.repository/SociOS-Linux/source-os"
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/attribute.repository/SourceOS-Linux/source-os"
 
 echo ""
 echo "=== Next: set up Workload Identity Federation ==="

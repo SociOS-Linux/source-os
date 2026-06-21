@@ -11,7 +11,7 @@ curl https://alx.sh | sh
 # Phase B — replace Fedora with NixOS
 curl -L https://raw.githubusercontent.com/elitak/nixos-infect/master/nixos-infect | \
   NIX_CHANNEL=nixos-unstable NO_REBOOT=1 bash
-git clone https://github.com/SociOS-Linux/source-os.git /opt/sourceos/source-os
+git clone https://github.com/SourceOS-Linux/source-os.git /opt/sourceos/source-os
 reboot
 
 # Phase C — enroll (run as root from the repo root, ~35 min)

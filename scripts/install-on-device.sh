@@ -19,12 +19,12 @@
 #   nvme0n1p6  — /     (ext4, 171 GB)               PARTUUID 295e2392-cca2-4ddb-8532-f9517990ceb7
 #
 # Usage (as root from within the Asahi Linux environment):
-#   curl -fsSL https://raw.githubusercontent.com/SociOS-Linux/source-os/main/scripts/install-on-device.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/SourceOS-Linux/source-os/main/scripts/install-on-device.sh | sudo bash
 #   OR: sudo bash /path/to/source-os/scripts/install-on-device.sh
 
 set -euo pipefail
 
-FLAKE_REF="${FLAKE_REF:-github:SociOS-Linux/source-os}"
+FLAKE_REF="${FLAKE_REF:-github:SourceOS-Linux/source-os}"
 HOST="${HOST:-builder-aarch64}"
 ROOT_DEV="${ROOT_DEV:-/dev/disk/by-partuuid/295e2392-cca2-4ddb-8532-f9517990ceb7}"
 BOOT_DEV="${BOOT_DEV:-/dev/disk/by-partuuid/c952115c-eafb-4836-8ba2-6f62a31bab66}"
@@ -137,8 +137,9 @@ nixos-enter --root "${MNT}" -c 'passwd sourceos'
 # ── Step 7: Copy repo for post-install enrollment ─────────────────────────────
 
 REPO_DST="${MNT}/opt/source-os"
-if [[ -d /opt/source-os ]] || [[ -d "${HOME}/dev/source-os" ]]; then
+if [[ -d /opt/source-os ]] || [[ -d /opt/sourceos/source-os ]] || [[ -d "${HOME}/dev/source-os" ]]; then
     SRC_REPO="${HOME}/dev/source-os"
+    [[ -d /opt/sourceos/source-os ]] && SRC_REPO="/opt/sourceos/source-os"
     [[ -d /opt/source-os ]] && SRC_REPO="/opt/source-os"
     info "Copying source-os repo to ${REPO_DST}..."
     mkdir -p "${REPO_DST}"

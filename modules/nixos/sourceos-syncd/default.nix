@@ -64,7 +64,7 @@ in
 
     flakeRef = lib.mkOption {
       type = lib.types.str;
-      default = "github:SociOS-Linux/source-os#builder-aarch64";
+      default = "github:SourceOS-Linux/source-os#builder-aarch64";
       description = "NixOS flake ref passed to nixos-rebuild switch.";
     };
 

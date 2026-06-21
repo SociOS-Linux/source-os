@@ -39,7 +39,7 @@
     contentView = "sourceos-x86_64";
     lifecycleEnv = "candidate";
     locus = "local";
-    flakeRef = "github:SociOS-Linux/source-os#canary-x86_64";
+    flakeRef = "github:SourceOS-Linux/source-os#canary-x86_64";
     pollInterval = 300;
     noVerifySsl = true;
     katelloPasswordFile = config.sops.secrets.katello-password.path;
