@@ -8,13 +8,13 @@
 #
 # All checks are read-only. Nothing is modified.
 
-set -euo pipefail
+set -uo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 PASS=0; FAIL=0
 
-_ok()   { printf "  ${GREEN}✓${NC}  %s\n" "$*";  (( PASS++ )); }
-_fail() { printf "  ${RED}✗${NC}  %s\n" "$*" >&2; (( FAIL++ )); }
+_ok()   { printf "  ${GREEN}✓${NC}  %s\n" "$*";  PASS=$(( PASS + 1 )); }
+_fail() { printf "  ${RED}✗${NC}  %s\n" "$*" >&2; FAIL=$(( FAIL + 1 )); }
 _info() { printf "  ${CYAN}·${NC}  %s\n" "$*"; }
 _warn() { printf "  ${YELLOW}!${NC}  %s\n" "$*"; }
 
@@ -77,7 +77,7 @@ if [[ -n "${FINISH_APP_RES}" && -f "${FINISH_APP_RES}/boot.bin" ]]; then
         _ok "boot.bin magic looks valid (${_magic})"
     else
         _warn "boot.bin magic ${_magic} — expected ELF (7f454c46) or AArch64 branch; verify manually"
-        (( PASS++ ))  # warn-only, not a hard fail
+        PASS=$(( PASS + 1 ))  # warn-only, not a hard fail
     fi
 else
     _fail "boot.bin not accessible — skipping magic check"
@@ -140,7 +140,7 @@ if [[ -n "${EFI_MP}" ]]; then
     fi
 else
     _warn "[7/9] EFI partition not mounted — skipping AppleDouble check"
-    (( PASS++ ))
+    PASS=$(( PASS + 1 ))
 fi
 
 # ── 8. iso9660 installer partition with correct label ────────────────────────
