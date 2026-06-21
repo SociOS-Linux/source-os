@@ -28,6 +28,7 @@ set -euo pipefail
 OUT="${OUT:-out}"; mkdir -p "$OUT"
 SPEC_FILE="${SPEC_FILE:-/dev/stdin}"
 GCS_PREFIX="${GCS_PREFIX:-}"
+TARGET="${TARGET:-iso}"   # iso (download) | netboot (nlboot fleet)
 FLAKE_REF="${FLAKE_REF:-github:SourceOS-Linux/source-os}"
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 log() { printf '[build-custom] %s\n' "$*"; }
@@ -80,7 +81,17 @@ while IFS= read -r uname; do
   USERS_NIX="$USERS_NIX users.users.\"$uname\" = { isNormalUser = true; extraGroups = [ $GROUPS_NIX ]; };"
 done < <(jq -r '.users[]?.name // empty' <<<"$SPEC")
 
-# ── Compose the per-build flake ──────────────────────────────────────────────
+# Optional raw module snippet (premium "module editor"). The backend only
+# forwards this for premium tier; we additionally refuse import-from-derivation
+# and obvious escapes. It is evaluated inside the Nix sandbox (no network at
+# build, no host access) — the snippet is NixOS module config, not arbitrary code.
+SNIPPET="$(jq -r '.moduleSnippet // ""' <<<"$SPEC")"
+if [[ -n "$SNIPPET" ]]; then
+  echo "$SNIPPET" | grep -qE 'builtins\.(exec|getEnv|fetch|readFile|path)|import +<|/nix/store|\.\./' \
+    && die "module snippet contains a disallowed construct"
+fi
+
+# ── Compose the per-build flake (both targets share the customization module) ──
 mkdir -p "$WORK/build"
 cat > "$WORK/build/flake.nix" <<EOF
 {
@@ -88,45 +99,85 @@ cat > "$WORK/build/flake.nix" <<EOF
   inputs.sourceos.url = "${FLAKE_REF}";
   inputs.nixpkgs.follows = "sourceos/nixpkgs";
   inputs.nixos-generators.follows = "sourceos/nixos-generators";
-  outputs = { self, nixpkgs, sourceos, nixos-generators }: {
+  outputs = { self, nixpkgs, sourceos, nixos-generators }:
+  let
+    custom = ({ pkgs, lib, modulesPath, ... }: {
+      networking.hostName = "${HOSTNAME}";
+      environment.systemPackages = [ ${PKGS_NIX} ];
+      ${SERVICES_NIX}
+      ${USERS_NIX}
+      ${SNIPPET}
+    });
+  in {
+    # Downloadable installer ISO.
     packages.${ARCH}-linux.image = nixos-generators.nixosGenerate {
       system = "${ARCH}-linux";
       specialArgs = { self = sourceos; };
       format = "install-iso";
+      modules = [ sourceos.nixosModules.${MODULE} custom ];
+    };
+    # Netboot system (kernel + RAM-disk squashfs) for the nlboot fleet.
+    nixosConfigurations.netboot = nixpkgs.lib.nixosSystem {
+      system = "${ARCH}-linux";
+      specialArgs = { self = sourceos; };
       modules = [
+        ({ modulesPath, ... }: { imports = [ "\${modulesPath}/installer/netboot/netboot-minimal.nix" ]; })
         sourceos.nixosModules.${MODULE}
-        ({ pkgs, lib, ... }: {
-          networking.hostName = "${HOSTNAME}";
-          environment.systemPackages = [ ${PKGS_NIX} ];
-          ${SERVICES_NIX}
-          ${USERS_NIX}
-        })
+        custom
       ];
     };
   };
 }
 EOF
-log "composed build: edition=$EDITION arch=$ARCH host=$HOSTNAME pkgs=[$(jq -rc '.packages // []' <<<"$SPEC")]"
+log "composed build: target=$TARGET edition=$EDITION arch=$ARCH host=$HOSTNAME pkgs=[$(jq -rc '.packages // []' <<<"$SPEC")]"
 
 # ── Build ────────────────────────────────────────────────────────────────────
-log "nix build (this is the long step)..."
-nix build --no-link --print-out-paths \
-  --override-input sourceos "$FLAKE_REF" \
-  "$WORK/build#packages.${ARCH}-linux.image" --print-build-logs > "$WORK/outpath" || die "nix build failed"
-RESULT="$(cat "$WORK/outpath")"
-ISO="$(find -L "$RESULT" -name '*.iso' | head -1)"
-[[ -n "$ISO" ]] || die "no ISO produced"
+if [[ "$TARGET" == "iso" ]]; then
+  log "nix build install-iso (long step)..."
+  nix build --no-link --print-out-paths \
+    "$WORK/build#packages.${ARCH}-linux.image" --print-build-logs > "$WORK/outpath" || die "nix build failed"
+  RESULT="$(cat "$WORK/outpath")"
+  ISO="$(find -L "$RESULT" -name '*.iso' | head -1)"
+  [[ -n "$ISO" ]] || die "no ISO produced"
+  NAME="sourceos-${EDITION}-${ARCH}-custom.iso"
+  cp "$ISO" "$OUT/$NAME"
+  ( cd "$OUT" && sha256sum "$NAME" > "$NAME.sha256" )
 
-NAME="sourceos-${EDITION}-${ARCH}-custom.iso"
-cp "$ISO" "$OUT/$NAME"
-( cd "$OUT" && sha256sum "$NAME" > "$NAME.sha256" )
-log "built $OUT/$NAME ($(du -h "$OUT/$NAME" | cut -f1))"
+elif [[ "$TARGET" == "netboot" ]]; then
+  log "nix build netboot kernel + initramfs (long step)..."
+  base="$WORK/build#nixosConfigurations.netboot.config.system.build"
+  KERNEL="$(nix build --no-link --print-out-paths "$base.kernel" --print-build-logs)/bzImage" || die "kernel build failed"
+  [[ -f "$KERNEL" ]] || KERNEL="$(find -L "$(nix build --no-link --print-out-paths "$base.kernel")" -name 'bzImage' -o -name 'Image' | head -1)"
+  RAMDISK_DIR="$(nix build --no-link --print-out-paths "$base.netbootRamdisk")" || die "ramdisk build failed"
+  INITRD="$(find -L "$RAMDISK_DIR" -name 'initrd*' | head -1)"
+  IPXE="$(nix build --no-link --print-out-paths "$base.netbootIpxeScript")" || die "ipxe build failed"
+  # kargs = everything after the kernel path on the ipxe `kernel` line.
+  KARGS="$(grep -E '^kernel ' "$(find -L "$IPXE" -type f | head -1)" | sed -E 's#^kernel +\S+ +##')"
+  cp "$KERNEL" "$OUT/kernel"; cp "$INITRD" "$OUT/initrd"
+  ( cd "$OUT" && sha256sum kernel initrd > netboot.sha256 )
+  KSUM="$(awk '/kernel$/{print $1}' "$OUT/netboot.sha256")"
+  ISUM="$(awk '/initrd$/{print $1}' "$OUT/netboot.sha256")"
+  cat > "$OUT/netboot-manifest.json" <<JSON
+{ "kernel": { "file": "kernel", "sha256": "${KSUM}", "args": "${KARGS}" },
+  "initramfs": { "file": "initrd", "sha256": "${ISUM}" } }
+JSON
+  log "netboot artifacts: kernel + initrd + manifest"
+else
+  die "unknown TARGET: $TARGET (iso|netboot)"
+fi
+log "built artifacts in $OUT:"; ls -lh "$OUT"
 
 # ── Upload ───────────────────────────────────────────────────────────────────
 if [[ -n "$GCS_PREFIX" ]]; then
   log "uploading to $GCS_PREFIX/ ..."
-  gsutil cp "$OUT/$NAME" "$OUT/$NAME.sha256" "$GCS_PREFIX/"
-  echo "$GCS_PREFIX/$NAME" > "$OUT/artifact-url.txt"
-  log "artifact: $GCS_PREFIX/$NAME"
+  if [[ "$TARGET" == "iso" ]]; then
+    gsutil cp "$OUT/$NAME" "$OUT/$NAME.sha256" "$GCS_PREFIX/"
+    echo "$GCS_PREFIX/$NAME" > "$OUT/artifact-url.txt"
+    log "artifact: $GCS_PREFIX/$NAME"
+  else
+    gsutil cp "$OUT/kernel" "$OUT/initrd" "$OUT/netboot-manifest.json" "$OUT/netboot.sha256" "$GCS_PREFIX/"
+    echo "$GCS_PREFIX/netboot-manifest.json" > "$OUT/artifact-url.txt"
+    log "netboot base URL: $GCS_PREFIX/"
+  fi
 fi
 log "done."
