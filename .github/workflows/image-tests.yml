@@ -1,0 +1,89 @@
+# Image tests — validate that SourceOS editions actually boot.
+#   Layer 1 (always): deterministic nixosTests in QEMU/KVM on GitHub runners.
+#   Layer 2 (opt-in):  Agent-S GUI test — needs a grounding endpoint + key, so
+#                      it's gated and expects those to be provided.
+name: image-tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_agent_s:
+        description: 'Also run the Agent-S GUI test (needs AS_GROUND_URL + ANTHROPIC_API_KEY)'
+        required: false
+        default: false
+        type: boolean
+  pull_request:
+    paths:
+      - 'profiles/**'
+      - 'flake.nix'
+      - 'tests/editions/**'
+      - '.github/workflows/image-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'profiles/**'
+      - 'tests/editions/**'
+
+jobs:
+  # ── Layer 1: deterministic boot tests (free, KVM on GitHub) ──────────────────
+  boot-tests:
+    name: boot ${{ matrix.check }} (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x86_64,  runner: ubuntu-latest,    check: edition-desktop-boot }
+          - { arch: x86_64,  runner: ubuntu-latest,    check: edition-server-boot }
+          - { arch: x86_64,  runner: ubuntu-latest,    check: edition-edge-boot }
+          - { arch: aarch64, runner: ubuntu-24.04-arm, check: edition-server-boot }
+          - { arch: aarch64, runner: ubuntu-24.04-arm, check: edition-edge-boot }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm || true
+          ls -l /dev/kvm || echo "no /dev/kvm (test will use slower TCG)"
+      - uses: DeterminateSystems/nix-installer-action@v14
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true; df -h
+      - name: Run boot test
+        run: |
+          nix build ".#checks.${{ matrix.arch }}-linux.${{ matrix.check }}" \
+            --print-build-logs --show-trace -L
+
+  # ── Layer 2: Agent-S GUI test (opt-in, needs grounding endpoint + key) ───────
+  agent-s:
+    name: Agent-S GUI test
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_agent_s == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v14
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm || true
+      - name: Build desktop image + harness deps
+        run: |
+          nix build .#packages.x86_64-linux.sourceos-image-qcow2-desktop --print-build-logs
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb x11vnc tigervnc-viewer qemu-system-x86 python3-pip
+          pip install -r tests/agent-s/requirements.txt
+      - name: Run Agent-S GUI test
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AS_GROUND_URL: ${{ secrets.AS_GROUND_URL }}   # external UI-TARS endpoint
+        run: |
+          IMG=$(find -L result -name '*.qcow2' | head -1) \
+            bash tests/agent-s/harness.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: agent-s-artifacts, path: tests/agent-s/artifacts/*, if-no-files-found: ignore }
