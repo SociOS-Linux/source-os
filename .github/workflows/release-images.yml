@@ -1,0 +1,158 @@
+# Public release images — builds installable ISOs + the Apple Silicon boot
+# bundle and publishes them to a GitHub Release (public, versioned URLs) and to
+# a public prefix of the GCS artifacts bucket. Separate from nix-build-images.yml
+# (which feeds the internal Katello content lifecycle).
+#
+# Trigger: push a tag like `v26.11` or `v26.11.1`, or run manually.
+#
+# Required secrets (same WIF setup as nix-build-images.yml):
+#   GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT
+# GITHUB_TOKEN (built-in) needs contents:write for the Release.
+name: release-images
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build (e.g. v26.11)'
+        required: true
+        type: string
+
+env:
+  GCS_BUCKET: sourceos-artifacts-socioprophet
+  GCP_PROJECT: socioprophet-platform
+
+jobs:
+
+  # ── x86_64 installer ISO ─────────────────────────────────────────────────────
+  iso-x86_64:
+    name: build x86_64 ISO
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions: { contents: read, id-token: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v14
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android; df -h
+      - name: Build ISO
+        run: |
+          nix build .#packages.x86_64-linux.sourceos-installer-iso \
+            --print-build-logs --show-trace
+          ISO=$(find -L result -name '*.iso' | head -1)
+          mkdir -p out && cp "$ISO" "out/$(basename "$ISO")"
+          ( cd out && sha256sum *.iso > "$(basename "$ISO").sha256" )
+          ls -lh out
+      - uses: actions/upload-artifact@v4
+        with: { name: iso-x86_64, path: out/*, retention-days: 7 }
+
+  # ── aarch64 (generic ARM64 UEFI) installer ISO ───────────────────────────────
+  iso-aarch64:
+    name: build aarch64 ISO
+    runs-on: [self-hosted, aarch64-linux, Linux]
+    timeout-minutes: 180
+    permissions: { contents: read, id-token: write }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ISO
+        run: |
+          . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || true
+          nix build .#packages.aarch64-linux.sourceos-installer-iso \
+            --print-build-logs --show-trace
+          ISO=$(find -L result -name '*.iso' | head -1)
+          mkdir -p out && cp "$ISO" "out/$(basename "$ISO")"
+          ( cd out && sha256sum *.iso > "$(basename "$ISO").sha256" )
+          ls -lh out
+      - uses: actions/upload-artifact@v4
+        with: { name: iso-aarch64, path: out/*, retention-days: 7 }
+
+  # ── Apple Silicon boot bundle (advanced/offline path) ────────────────────────
+  asahi-bundle:
+    name: build Apple Silicon boot bundle
+    runs-on: [self-hosted, aarch64-linux, Linux]
+    timeout-minutes: 120
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build m1n1 boot bundle
+        run: |
+          . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh || true
+          bash scripts/build-m1n1-bundle.sh out "${{ github.event.inputs.tag || github.ref_name }}"
+          ( cd out && tar -czf sourceos-asahi-boot-bundle.tar.gz m1n1.macho boot.bin BOOTAA64.EFI manifest.json 2>/dev/null || \
+            tar -czf sourceos-asahi-boot-bundle.tar.gz m1n1.macho manifest.json )
+          ls -lh out
+      - uses: actions/upload-artifact@v4
+        with: { name: asahi-bundle, path: out/*, retention-days: 7 }
+
+  # ── Publish to GitHub Release + GCS ──────────────────────────────────────────
+  publish:
+    name: publish release
+    runs-on: ubuntu-latest
+    needs: [iso-x86_64, iso-aarch64, asahi-bundle]
+    if: always() && (needs.iso-x86_64.result == 'success' || needs.iso-aarch64.result == 'success')
+    permissions: { contents: write, id-token: write }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve tag/version
+        id: ver
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with: { path: dist }
+      - name: Flatten artifacts
+        run: |
+          mkdir -p release
+          find dist -type f -exec cp {} release/ \;
+          ls -lh release
+
+      - name: Template installer_data.json for this release
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          VERSION="${{ steps.ver.outputs.version }}"
+          PKG_SHA="$(sha256sum release/*asahi-boot-bundle.tar.gz 2>/dev/null | awk '{print $1}')"
+          sed -e "s/\${TAG}/${TAG}/g" \
+              -e "s/\${VERSION}/${VERSION}/g" \
+              -e "s/\${PACKAGE_SHA256}/${PKG_SHA:-PENDING}/g" \
+              asahi/installer_data.json > release/installer_data.json
+          ( cd release && sha256sum * > SHA256SUMS 2>/dev/null || true )
+
+      - name: Create / update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --title "SourceOS $TAG" \
+              --notes "SourceOS $TAG installable images. See https://sourceos.org/download" \
+              --verify-tag || gh release create "$TAG" --title "SourceOS $TAG" \
+              --notes "SourceOS $TAG installable images."
+          gh release upload "$TAG" release/* --clobber
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Mirror to public GCS prefix
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: release
+          destination: ${{ env.GCS_BUCKET }}/public/releases/${{ steps.ver.outputs.tag }}
+          parent: false
+          process_gcloudignore: false
+
+      - name: Summary
+        run: |
+          echo "## SourceOS ${{ steps.ver.outputs.tag }} published" >> "$GITHUB_STEP_SUMMARY"
+          echo "GitHub Release: https://github.com/SourceOS-Linux/source-os/releases/tag/${{ steps.ver.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "GCS mirror: \`gs://${{ env.GCS_BUCKET }}/public/releases/${{ steps.ver.outputs.tag }}/\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          ls -lh release >> "$GITHUB_STEP_SUMMARY"
