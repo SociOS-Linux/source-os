@@ -13,10 +13,11 @@
 #   4. Runs nixos-install with the SourceOS builder-aarch64 config.
 #   5. Copies enroll.sh and repo into /mnt for post-install enrollment.
 #
-# Partition assumptions (Apple Silicon NVMe, verified via diskutil on macOS):
-#   nvme0n1p4  — EFI  (FAT32, /boot/efi)           PARTUUID 23567348-cfb2-44af-905e-5fec69587f35
-#   nvme0n1p5  — /boot (ext4, 1.1 GB)               PARTUUID c952115c-eafb-4836-8ba2-6f62a31bab66
-#   nvme0n1p6  — /     (ext4, 171 GB)               PARTUUID 295e2392-cca2-4ddb-8532-f9517990ceb7
+# Partition auto-detection (Apple Silicon NVMe layout after SourceOS prep):
+#   EFI   (~500 MB, FAT32, already formatted from macOS)  → /boot/efi
+#   Boot  (~1.1 GB, iso9660, NixOS installer)             → formatted ext4 → /boot
+#   Root  (Linux-filesystem GPT type 0FC63DAF, largest)   → formatted ext4 → /
+# Override via ROOT_DEV / BOOT_DEV / EFI_DEV environment variables if needed.
 #
 # Usage (as root from within the Asahi Linux environment):
 #   curl -fsSL https://raw.githubusercontent.com/SourceOS-Linux/source-os/main/scripts/install-on-device.sh | sudo bash
@@ -26,13 +27,55 @@ set -euo pipefail
 
 FLAKE_REF="${FLAKE_REF:-github:SourceOS-Linux/source-os}"
 HOST="${HOST:-builder-aarch64}"
-ROOT_DEV="${ROOT_DEV:-/dev/disk/by-partuuid/295e2392-cca2-4ddb-8532-f9517990ceb7}"
-BOOT_DEV="${BOOT_DEV:-/dev/disk/by-partuuid/c952115c-eafb-4836-8ba2-6f62a31bab66}"
-EFI_DEV="${EFI_DEV:-/dev/disk/by-partuuid/23567348-cfb2-44af-905e-5fec69587f35}"
 MNT="${MNT:-/mnt}"
 FORMAT="${FORMAT:-yes}"  # set FORMAT=no to skip mkfs
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
+# ── Partition auto-detection ───────────────────────────────────────────────────
+# Override any of ROOT_DEV / BOOT_DEV / EFI_DEV via environment to skip
+# auto-detection entirely (useful when the device layout differs from standard).
+#
+# Standard Apple Silicon layout after SourceOS prep:
+#   - EFI  (~500 MB, FAT32)        — formatted from macOS by finish-step2.sh
+#   - Boot (~1.1 GB, iso9660 now)  — NixOS installer; reformatted to ext4 here
+#   - Root (~171 GB, Linux type)   — GPT type 0FC63DAF (Linux filesystem)
+_auto_detect_parts() {
+    local nvme
+    nvme=$(lsblk -dno NAME,TYPE 2>/dev/null \
+        | awk '$2=="disk"{print "/dev/"$1}' | grep -m1 nvme || true)
+    [[ -n "$nvme" ]] || return 1
+
+    local linux_type="0fc63daf-8483-4772-8e79-3d69d8477de4"
+    ROOT_DEV=$(lsblk -rno NAME,PARTTYPE "$nvme" 2>/dev/null \
+        | awk -v t="$linux_type" 'tolower($2)==t{print "/dev/"$1}' | tail -1)
+    EFI_DEV=$(lsblk -rno NAME,FSTYPE "$nvme" 2>/dev/null \
+        | awk '$2=="vfat"{print "/dev/"$1}' | head -1)
+    BOOT_DEV=$(lsblk -rno NAME,FSTYPE "$nvme" 2>/dev/null \
+        | awk '$2=="iso9660"{print "/dev/"$1}' | head -1)
+
+    [[ -n "$ROOT_DEV" && -n "$EFI_DEV" && -n "$BOOT_DEV" ]]
+}
+
+if [[ -z "${ROOT_DEV+x}" ]] || [[ -z "${BOOT_DEV+x}" ]] || [[ -z "${EFI_DEV+x}" ]]; then
+    _auto_detect_parts || true  # sets vars; errors handled below
+fi
+
+# Validate — give actionable message if any partition is missing
+RED='\033[0;31m'; NC='\033[0m'
+_check_dev() {
+    local var="$1" val="$2" hint="$3"
+    if [[ -z "$val" ]] || [[ ! -b "$val" ]]; then
+        printf "${RED}✗  ERROR:${NC} %s not found (got '%s').\n" "$var" "$val" >&2
+        printf "   Set %s=<device> in the environment to override.\n" "$var" >&2
+        printf "   Hint: %s\n" "$hint" >&2
+        exit 1
+    fi
+}
+_check_dev ROOT_DEV "${ROOT_DEV:-}" "lsblk -o NAME,PARTTYPE,SIZE — look for 0fc63daf Linux-filesystem type, largest"
+_check_dev BOOT_DEV "${BOOT_DEV:-}" "lsblk -o NAME,FSTYPE,SIZE — look for iso9660 partition (~1.1 GB)"
+_check_dev EFI_DEV  "${EFI_DEV:-}"  "lsblk -o NAME,FSTYPE,SIZE — look for vfat partition (~500 MB)"
+unset -f _auto_detect_parts _check_dev
+
+GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'
 ok()   { printf "  ${GREEN}✓${NC}  %s\n" "$*"; }
 info() { printf "  ${CYAN}·${NC}  %s\n" "$*"; }
 warn() { printf "  ${YELLOW}!${NC}  %s\n" "$*"; }

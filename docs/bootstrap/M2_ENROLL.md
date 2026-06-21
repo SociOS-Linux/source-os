@@ -65,28 +65,44 @@ Then continue with [Phase A-usb](#phase-a-usb--nixos-installer-usb) below instea
 
 ---
 
-## Phase A-usb — NixOS installer USB
+## Phase A-usb — NixOS installer (internal partition)
 
-If you went through Phase A-alt (custom Asahi step 1) rather than the standard Asahi+Fedora path, you arrive at U-Boot but have no Fedora to nixos-infect. Use the NixOS installer USB instead.
+If you went through Phase A-alt (custom Asahi step 1) rather than the standard Asahi+Fedora path, you arrive at U-Boot but have no Fedora to nixos-infect. The NixOS installer ISO is written to an internal NVMe partition (`disk0s9`); U-Boot finds it via `bootflow scan -b` without any USB drive.
 
-**Build the USB (from macOS, ~3 min + lima build):**
+**Write the installer ISO to the internal partition (from macOS, ~3 min):**
 
 ```sh
-# Identify USB drive:
-diskutil list external physical
+# Download the NixOS aarch64 installer ISO (or use one already on disk):
+# https://nixos.org/download — pick the minimal aarch64 ISO
 
-bash scripts/deploy-stage2.sh --usb /dev/diskX
+# Write to the pre-existing installer partition (disk0s9, ~1.1 GB):
+# Must use osascript for admin elevation; whole-disk writes are blocked by
+# macOS disk arbitration while the APFS container is mounted.
+cat > /tmp/write_iso.sh <<'EOF'
+dd if=/path/to/nixos-minimal-*.aarch64-linux.iso of=/dev/rdisk0s9 bs=4096
+EOF
+osascript -e 'do shell script "bash /tmp/write_iso.sh" with administrator privileges'
+
+# Verify: CD001 magic at sector 16 (byte 32769)
+dd if=/dev/rdisk0s9 bs=4096 skip=8 count=1 2>/dev/null | xxd -s 1 -l 5
+# Expected: 00000001: 4344 3030 31               CD001
 ```
 
+> **Pre-flight check:** Before doing 1TR, run `sudo bash scripts/preflight.sh` from macOS.
+> It verifies all 9 boot-chain conditions (boot.bin, GRUB, iso9660 label, CD001 magic, no AppleDouble files) and exits 1 on any failure.
+
 **Boot sequence:**
-1. Insert USB into the Mac
-2. Reboot → startup options (hold power) → select **SourceOS**
-3. U-Boot auto-boots from USB → NixOS installer (~1–2 min)
+1. Run preflight: `sudo bash scripts/preflight.sh`
+2. Shut down → hold power → "Loading startup options…" → select **SourceOS** → Options → complete 1TR (see Phase A-alt for step-by-step)
+3. Reboot → select **SourceOS** — U-Boot auto-boots from internal NVMe via `bootflow scan -b` → GRUB → NixOS installer (~1–2 min)
 4. Log in as root, then run:
    ```sh
    curl -fsSL https://raw.githubusercontent.com/SourceOS-Linux/source-os/main/scripts/install-on-device.sh | sudo bash
    ```
+   `install-on-device.sh` auto-detects partitions via `lsblk`; no PARTUUIDs to supply.
 5. After reboot into SourceOS NixOS, run enroll (Phase D below)
+
+> **USB alternative:** A USB drive also works — U-Boot scans all block devices. Format as FAT32, copy GRUB (`EFI/BOOT/BOOTAA64.EFI`) to the USB, and write the ISO to the USB instead of disk0s9. The internal partition approach is preferred as it requires no extra hardware.
 
 ---
 

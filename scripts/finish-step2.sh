@@ -50,10 +50,31 @@ echo
 
 # ── Step 1: Verify SourceOS stub ─────────────────────────────────────────────
 
-SOURCEOS_DISK="disk3"
-PREBOOT_DISK="disk3s3"
-SYSTEM_DISK="disk3s2"
-EFI_DISK="disk0s4"
+info "Detecting SourceOS APFS container on disk0..."
+
+SOURCEOS_CS=""
+for _cs in $(diskutil list disk0 2>/dev/null | awk '/Apple_APFS Container/{print $NF}'); do
+    if diskutil list "${_cs}" 2>/dev/null | grep -q "SourceOS"; then
+        SOURCEOS_CS="${_cs}"; break
+    fi
+done
+[[ -n "${SOURCEOS_CS}" ]] || \
+    die "Cannot find SourceOS APFS container on disk0. Is Asahi step 1 complete?"
+ok "SourceOS APFS container: ${SOURCEOS_CS}"
+
+SYSTEM_DISK=$(diskutil list "${SOURCEOS_CS}" 2>/dev/null | \
+    awk '/APFS Volume/ && !/Preboot|Recovery|VM/{print $NF; exit}')
+PREBOOT_DISK=$(diskutil list "${SOURCEOS_CS}" 2>/dev/null | \
+    awk '/APFS Volume.*Preboot/{print $NF; exit}')
+[[ -n "${SYSTEM_DISK}" ]]  || die "Cannot find SourceOS System volume in ${SOURCEOS_CS}"
+[[ -n "${PREBOOT_DISK}" ]] || die "Cannot find SourceOS Preboot volume in ${SOURCEOS_CS}"
+
+# EFI: prefer a partition labeled EFI-SOURC; fall back to first FAT32 on disk0
+EFI_DISK=$(diskutil list disk0 | awk '/EFI-SOURC/{print $NF; exit}')
+if [[ -z "${EFI_DISK}" ]]; then
+    EFI_DISK=$(diskutil list disk0 | awk '/Microsoft Basic Data/{print $NF; exit}')
+fi
+[[ -n "${EFI_DISK}" ]] || die "Cannot find EFI partition on disk0. Reformat it manually."
 
 info "Mounting SourceOS volumes..."
 diskutil mount "${PREBOOT_DISK}" >/dev/null 2>&1 || true
