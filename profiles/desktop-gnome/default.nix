@@ -4,14 +4,16 @@
 #
 # The imperative GNOME "polish" layer (profiles/linux-dev/workstation-v0) can be
 # applied on top after first boot via its apply.sh; it is not required to boot.
-{ self, lib, pkgs, ... }:
+{ lib, pkgs, ... }:
 let
   # BearBrowser — the SourceOS default browser (Gecko + anti-fingerprint engine
-  # patches), packaged in packages/browser/bearbrowser.nix. The prebuilt release
-  # artifact is x86_64-only for now, so fall back to Firefox on aarch64 until an
-  # aarch64 BearBrowser build exists.
+  # patches), packaged in packages/browser/bearbrowser.nix. Built via callPackage
+  # so this works in any module-eval context (the boot VM tests don't pass `self`).
+  # The prebuilt release artifact is x86_64-only for now, so fall back to Firefox
+  # on aarch64 until an aarch64 BearBrowser build exists.
   isX86 = pkgs.stdenv.hostPlatform.system == "x86_64-linux";
-  browser = if isX86 then self.packages.x86_64-linux.bearbrowser else pkgs.firefox;
+  bearbrowser = pkgs.callPackage ../../packages/browser/bearbrowser.nix { };
+  browser = if isX86 then bearbrowser else pkgs.firefox;
   browserDesktop = if isX86 then "bearbrowser.desktop" else "firefox.desktop";
 in
 {
