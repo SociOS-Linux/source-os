@@ -110,6 +110,13 @@ jobs:
         run: |
           mkdir -p release
           find dist -type f -exec cp {} release/ \;
+          # Stable versionless aliases so https://.../releases/latest/download/<name>
+          # resolves regardless of the version embedded in the real filename.
+          for arch in x86_64 aarch64; do
+            src=$(find release -name "sourceos-*-installer-${arch}-linux.iso" | head -1)
+            [ -n "$src" ] && cp "$src" "release/sourceos-installer-${arch}.iso"
+            [ -f "${src}.sha256" ] && cp "${src}.sha256" "release/sourceos-installer-${arch}.iso.sha256"
+          done
           ls -lh release
 
       - name: Template installer_data.json for this release

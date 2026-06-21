@@ -49,4 +49,4 @@ echo
 # The upstream Asahi installer honors INSTALLER_DATA to point at a custom
 # os package manifest, so only SourceOS is offered.
 export INSTALLER_DATA
-exec curl -fsSL https://alx.sh | sh
+curl -fsSL https://alx.sh | sh

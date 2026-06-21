@@ -26,7 +26,16 @@
 set -euo pipefail
 
 FLAKE_REF="${FLAKE_REF:-github:SourceOS-Linux/source-os}"
-HOST="${HOST:-builder-aarch64}"
+# Arch-aware default host. builder-aarch64 is the Apple Silicon target; on
+# x86_64 default to stable-x86_64. Override with HOST=<name>.
+# NOTE: these are server-role configs (syncd/katello/sops). A clean end-user
+# desktop host does not exist yet — see the "Generic/desktop host" gap.
+case "$(uname -m)" in
+  x86_64)  _default_host="stable-x86_64" ;;
+  aarch64|arm64) _default_host="builder-aarch64" ;;
+  *)       _default_host="stable-x86_64" ;;
+esac
+HOST="${HOST:-$_default_host}"
 MNT="${MNT:-/mnt}"
 FORMAT="${FORMAT:-yes}"  # set FORMAT=no to skip mkfs
 
