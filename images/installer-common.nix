@@ -29,6 +29,7 @@ in
   # ── Bundle the SourceOS installer into the live image ────────────────────────
   # The install scripts ship read-only at /etc/sourceos-installer; a wrapper
   # `sourceos-install` is on PATH so the first thing a user sees works.
+  environment.etc."sourceos-installer/install-image.sh".source = ../scripts/install-image.sh;
   environment.etc."sourceos-installer/install-on-device.sh".source = ../scripts/install-on-device.sh;
   environment.etc."sourceos-installer/preflight.sh".source = ../scripts/preflight.sh;
 
@@ -37,10 +38,9 @@ in
     rsync vim gnused gawk pciutils usbutils
   ]) ++ [
     (pkgs.writeShellScriptBin "sourceos-install" ''
-      set -euo pipefail
-      echo "SourceOS ${release} installer"
-      echo "Target disk auto-detection runs next; you'll confirm before any format."
-      exec sudo bash /etc/sourceos-installer/install-on-device.sh "$@"
+      echo "SourceOS ${release} installer — clean-disk GNOME install."
+      echo "You will pick a target disk and confirm before anything is erased."
+      exec sudo bash /etc/sourceos-installer/install-image.sh "$@"
     '')
   ];
 

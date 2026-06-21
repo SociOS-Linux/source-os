@@ -138,6 +138,11 @@
 
       nixosModules = {
         sourceos-syncd = import ./modules/nixos/sourceos-syncd/default.nix;
+        # Reusable GNOME desktop profile for end-user installs. The public
+        # installer (scripts/install-image.sh) composes this with a freshly
+        # generated hardware-configuration.nix on the target machine, so no
+        # per-machine hardware config is committed here.
+        desktop-gnome = import ./profiles/desktop-gnome/default.nix;
       };
 
       nixosConfigurations = {
