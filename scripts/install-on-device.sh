@@ -114,6 +114,7 @@ fi
 
 if [[ "${FORMAT}" == "yes" ]]; then
     # Detect whether EFI partition needs formatting (0-byte size = no filesystem).
+    # shellcheck disable=SC2034  # probe kept for diagnostics; format decision uses EFI_FS below
     EFI_SIZE=$(lsblk -bno SIZE "${EFI_DEV}" 2>/dev/null || blockdev --getsize64 "${EFI_DEV}" 2>/dev/null || echo "0")
     EFI_FS=$(blkid -s TYPE -o value "${EFI_DEV}" 2>/dev/null || true)
     FORMAT_EFI="no"

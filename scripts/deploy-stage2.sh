@@ -92,6 +92,7 @@ if [[ $DRY_RUN -eq 0 ]]; then
             print(vm['sshLocalPort'] if vm else '')")
         [[ -n "${LIMA_PORT}" ]] || die "Could not determine lima SSH port"
 
+        # shellcheck disable=SC2034  # diagnostic capture, kept intentionally
         LIMA_KEY="$(limactl shell "${LIMA_VM}" -- \
             bash -c 'cat /proc/1/environ 2>/dev/null | tr \\0 \\n | grep SSH_AUTH' 2>/dev/null || true)"
 
@@ -136,6 +137,7 @@ diskutil info "${USB_DEV}" >/dev/null 2>&1 || die "Device ${USB_DEV} not found"
 
 DISK_NAME=$(diskutil info "${USB_DEV}" | grep "Device / Media Name" | awk -F': ' '{print $2}' | xargs)
 DISK_SIZE=$(diskutil info "${USB_DEV}" | grep "Disk Size" | awk -F': ' '{print $2}' | awk '{print $1,$2}')
+# shellcheck disable=SC2034  # informational probe, kept intentionally
 IS_INTERNAL=$(diskutil info "${USB_DEV}" | grep "Solid State" | head -1)
 
 echo

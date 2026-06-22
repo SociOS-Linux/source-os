@@ -37,8 +37,10 @@ jobs:
     permissions: { contents: read, id-token: write }
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@v14
-      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - uses: ./.github/actions/setup-nix
+        with:
+          cache-url: ${{ vars.NIX_CACHE_URL }}
+          cache-pubkey: ${{ vars.NIX_CACHE_PUBKEY }}
       - name: Free disk space
         run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true; df -h
 
@@ -56,11 +58,20 @@ jobs:
 
       - name: Build custom image
         id: build
+        env:
+          NIX_CACHE_BUCKET: ${{ vars.NIX_CACHE_BUCKET }}
+          NIX_CACHE_SECRET_KEY: ${{ secrets.NIX_CACHE_SECRET_KEY }}
+          # Self-managed signing key (minisign, no third-party authority). If
+          # the secret is unset the build still produces unsigned provenance.
+          SOURCEOS_SIGN_SECRET_KEY: ${{ secrets.SOURCEOS_SIGN_SECRET_KEY }}
+          SOURCEOS_SIGN_PUBKEY: ${{ vars.SOURCEOS_SIGN_PUBKEY }}
         run: |
           PREFIX="gs://${GCS_BUCKET}/user-builds/${{ github.event.inputs.uid }}/${{ github.event.inputs.build_id }}"
           printf '%s' '${{ github.event.inputs.spec }}' > /tmp/spec.json
           SPEC_FILE=/tmp/spec.json OUT=out GCS_PREFIX="$PREFIX" \
             TARGET="${{ github.event.inputs.target || 'iso' }}" \
+            BUILD_ID="${{ github.event.inputs.build_id }}" BUILD_UID="${{ github.event.inputs.uid }}" \
+            VERSION="${{ vars.SOURCEOS_VERSION || '26.11' }}" SOURCE_REV="${GITHUB_SHA}" \
             bash scripts/build-custom-image.sh
           echo "artifact=$(cat out/artifact-url.txt)" >> "$GITHUB_OUTPUT"
 
