@@ -17,6 +17,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_install:
+        description: 'Also run the install-to-disk test (real installer partitions + installs + boots from disk)'
+        required: false
+        default: false
+        type: boolean
   pull_request:
     paths:
       - 'profiles/**'
@@ -60,6 +65,34 @@ jobs:
       - name: Run boot test
         run: |
           nix build ".#checks.x86_64-linux.${{ matrix.check }}" \
+            --print-build-logs --show-trace -L
+
+  # ── Install-to-disk test (opt-in) ────────────────────────────────────────────
+  # Heavy: the real installer partitions a blank disk, installs the server
+  # edition, then the disk is rebooted and asserted to come up on its own
+  # bootloader. Opt-in via run_install so it never gates ordinary PRs.
+  install-test:
+    name: install-to-disk (x86_64)
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_install == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm || true
+          ls -l /dev/kvm || echo "no /dev/kvm (test will use slower TCG)"
+      - uses: ./.github/actions/setup-nix
+        with:
+          cache-url: ${{ vars.NIX_CACHE_URL }}
+          cache-pubkey: ${{ vars.NIX_CACHE_PUBKEY }}
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true; df -h
+      - name: Run install-to-disk test
+        run: |
+          nix build ".#checks.x86_64-linux.edition-server-install" \
             --print-build-logs --show-trace -L
 
   # ── aarch64 boot tests — need KVM on ARM (your GCP arm VM / self-hosted runner) ──

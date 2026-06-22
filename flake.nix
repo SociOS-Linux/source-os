@@ -286,6 +286,14 @@
             then import ./tests/editions/edge-boot.nix { inherit pkgs self; }
             else pkgs.runCommand "edition-edge-boot-skip" {} "mkdir -p $out";
 
+          # Install-to-disk: the real installer partitions a blank disk, installs
+          # SourceOS, and the system boots from disk on its own bootloader.
+          # x86_64 only (asserts systemd-bootx64.efi). Heavy → opt-in in CI.
+          edition-server-install =
+            if system == "x86_64-linux"
+            then import ./tests/install/server-install.nix { inherit pkgs self; }
+            else pkgs.runCommand "edition-server-install-skip" {} "mkdir -p $out";
+
           mesh-module-contract = import ./tests/mesh-module-contract.nix { inherit pkgs; };
           mesh-runtime-contract = import ./tests/mesh-runtime-contract.nix { inherit pkgs; };
           mesh-package-contract = import ./tests/mesh-package-contract.nix { inherit pkgs; };
