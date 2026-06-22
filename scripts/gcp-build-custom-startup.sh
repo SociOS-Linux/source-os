@@ -25,6 +25,11 @@ SPEC="$(md sourceos-spec)"
 UID_="$(md sourceos-uid)"
 BUILD_ID="$(md sourceos-build-id)"
 PREFIX="$(md sourceos-gcs-prefix)"
+# Optional: self-managed signing + cache (graceful if unset).
+SIGN_KEY="$(md sourceos-sign-secret-key || true)"
+CACHE_KEY="$(md sourceos-nix-cache-secret-key || true)"
+CACHE_BUCKET="$(md sourceos-nix-cache-bucket || true)"
+OS_VERSION="$(md sourceos-version || true)"; OS_VERSION="${OS_VERSION:-26.11}"
 
 status() { printf '%s' "$1" | gsutil cp - "$PREFIX/status.json" || true; }
 teardown() { gcloud --quiet compute instances delete "$NAME" --zone="$ZONE" || true; }
@@ -48,6 +53,9 @@ cd /root/source-os
 printf '%s' "$SPEC" > /tmp/spec.json
 
 if SPEC_FILE=/tmp/spec.json OUT=/root/out GCS_PREFIX="$PREFIX" \
+     BUILD_ID="$BUILD_ID" BUILD_UID="$UID_" VERSION="$OS_VERSION" \
+     SOURCEOS_SIGN_SECRET_KEY="$SIGN_KEY" \
+     NIX_CACHE_SECRET_KEY="$CACHE_KEY" NIX_CACHE_BUCKET="$CACHE_BUCKET" \
      bash scripts/build-custom-image.sh; then
   ART="$(cat /root/out/artifact-url.txt 2>/dev/null || true)"
   status "$(printf '{"status":"complete","lane":"gcp","artifact":"%s"}' "$ART")"

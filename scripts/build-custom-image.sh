@@ -174,6 +174,15 @@ else
 fi
 log "built artifacts in $OUT:"; ls -lh "$OUT"
 
+# ── Sign + provenance (self-managed minisign key; graceful no-op without it) ───
+# Emits <artifact>.minisig + in-toto statement + SLSA predicate (+ SBOM/OSImage
+# for the ISO). No third-party signing authority is involved.
+_selfdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUT="$OUT" TARGET="$TARGET" EDITION="$EDITION" ARCH="$ARCH" NAME="${NAME:-}" \
+  HOSTNAME_="$HOSTNAME" BUILD_ID="${BUILD_ID:-}" BUILD_UID="${UID:-}" \
+  STORE_PATHS="${CACHE_PATHS[*]:-}" GCS_PREFIX="$GCS_PREFIX" \
+  bash "$_selfdir/sign-and-provenance.sh" || true
+
 # ── Upload ───────────────────────────────────────────────────────────────────
 if [[ -n "$GCS_PREFIX" ]]; then
   log "uploading to $GCS_PREFIX/ ..."
@@ -186,6 +195,11 @@ if [[ -n "$GCS_PREFIX" ]]; then
     echo "$GCS_PREFIX/netboot-manifest.json" > "$OUT/artifact-url.txt"
     log "netboot base URL: $GCS_PREFIX/"
   fi
+  # Provenance sidecars (best-effort; only those that were produced).
+  shopt -s nullglob
+  prov_files=( "$OUT"/*.minisig "$OUT"/*.intoto.json "$OUT"/*.slsa.json "$OUT"/*.sbom.json "$OUT"/*.osimage.json )
+  shopt -u nullglob
+  [[ "${#prov_files[@]}" -gt 0 ]] && gsutil cp "${prov_files[@]}" "$GCS_PREFIX/" && log "uploaded ${#prov_files[@]} provenance sidecar(s)"
 fi
 
 # ── Warm the Nix binary cache (best-effort; no-op without NIX_CACHE_* env) ─────
