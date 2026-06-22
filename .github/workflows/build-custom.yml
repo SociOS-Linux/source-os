@@ -19,6 +19,12 @@ on:
         description: 'Build id (Firestore doc id)'
         required: true
         type: string
+      target:
+        description: 'Artifact target'
+        required: false
+        default: 'iso'
+        type: choice
+        options: [iso, netboot]
 
 env:
   GCS_BUCKET: sourceos-artifacts-socioprophet
@@ -54,6 +60,7 @@ jobs:
           PREFIX="gs://${GCS_BUCKET}/user-builds/${{ github.event.inputs.uid }}/${{ github.event.inputs.build_id }}"
           printf '%s' '${{ github.event.inputs.spec }}' > /tmp/spec.json
           SPEC_FILE=/tmp/spec.json OUT=out GCS_PREFIX="$PREFIX" \
+            TARGET="${{ github.event.inputs.target || 'iso' }}" \
             bash scripts/build-custom-image.sh
           echo "artifact=$(cat out/artifact-url.txt)" >> "$GITHUB_OUTPUT"
 
