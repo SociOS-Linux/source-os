@@ -137,7 +137,9 @@ if [[ "$TARGET" == "iso" ]]; then
   nix build --no-link --print-out-paths \
     "$WORK/build#packages.${ARCH}-linux.image" --print-build-logs > "$WORK/outpath" || die "nix build failed"
   RESULT="$(cat "$WORK/outpath")"
-  ISO="$(find -L "$RESULT" -name '*.iso' | head -1)"
+  # NB: the store path itself ends in `.iso` but is a DIRECTORY (iso/ inside);
+  # match files only, first hit, no pipe (avoids matching the dir + SIGPIPE).
+  ISO="$(find -L "$RESULT" -type f -name '*.iso' -print -quit)"
   [[ -n "$ISO" ]] || die "no ISO produced"
   NAME="sourceos-${EDITION}-${ARCH}-custom.iso"
   cp "$ISO" "$OUT/$NAME"
@@ -146,13 +148,15 @@ if [[ "$TARGET" == "iso" ]]; then
 elif [[ "$TARGET" == "netboot" ]]; then
   log "nix build netboot kernel + initramfs (long step)..."
   base="$WORK/build#nixosConfigurations.netboot.config.system.build"
-  KERNEL="$(nix build --no-link --print-out-paths "$base.kernel" --print-build-logs)/bzImage" || die "kernel build failed"
-  [[ -f "$KERNEL" ]] || KERNEL="$(find -L "$(nix build --no-link --print-out-paths "$base.kernel")" -name 'bzImage' -o -name 'Image' | head -1)"
+  KDIR="$(nix build --no-link --print-out-paths "$base.kernel" --print-build-logs)" || die "kernel build failed"
+  KERNEL="$(find -L "$KDIR" -type f \( -name 'bzImage' -o -name 'Image' \) -print -quit)"
+  [[ -n "$KERNEL" ]] || die "no kernel found in $KDIR"
   RAMDISK_DIR="$(nix build --no-link --print-out-paths "$base.netbootRamdisk")" || die "ramdisk build failed"
-  INITRD="$(find -L "$RAMDISK_DIR" -name 'initrd*' | head -1)"
+  INITRD="$(find -L "$RAMDISK_DIR" -type f -name 'initrd*' -print -quit)"
+  [[ -n "$INITRD" ]] || die "no initrd found in $RAMDISK_DIR"
   IPXE="$(nix build --no-link --print-out-paths "$base.netbootIpxeScript")" || die "ipxe build failed"
   # kargs = everything after the kernel path on the ipxe `kernel` line.
-  KARGS="$(grep -E '^kernel ' "$(find -L "$IPXE" -type f | head -1)" | sed -E 's#^kernel +\S+ +##')"
+  KARGS="$(grep -E '^kernel ' "$(find -L "$IPXE" -type f -print -quit)" | sed -E 's#^kernel +\S+ +##')"
   cp "$KERNEL" "$OUT/kernel"; cp "$INITRD" "$OUT/initrd"
   ( cd "$OUT" && sha256sum kernel initrd > netboot.sha256 )
   KSUM="$(awk '/kernel$/{print $1}' "$OUT/netboot.sha256")"
